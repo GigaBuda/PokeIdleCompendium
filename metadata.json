@@ -1,0 +1,6 @@
+{
+  "name": "PokéIdle Wiki & Database",
+  "description": "Compendio definitivo, tier list, guía de progresión, calculadoras de daño y estadísticas, y base de datos completa de objetos para el juego poke.idleworld.online.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
