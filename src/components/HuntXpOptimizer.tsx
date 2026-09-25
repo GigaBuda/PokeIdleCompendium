@@ -308,9 +308,10 @@ function projectHuntCombat(
       target.type2
     );
     const tmStab = getMoveStab(attacker, tmType);
+    const tmDefense = tmIsSpecial ? wildSpDef : wildDef;
     const tmRawDamage =
       ((2 * level / 5 + 2) * POKEGRID_TM_POWER *
-        (tmOffense / Math.max(1, selected.targetDefense))) / 50 + 2;
+        (tmOffense / Math.max(1, tmDefense))) / 50 + 2;
     const tmDamageRatio = Math.min(
       1,
       Math.max(0, (tmRawDamage * tmEffectiveness * tmStab) / wildMaxHp)
