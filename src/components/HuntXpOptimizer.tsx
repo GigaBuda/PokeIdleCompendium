@@ -67,6 +67,13 @@ export type SortField =
 
 export type SortDirection = 'asc' | 'desc';
 
+// Calibración empírica con Hunt Analyzer del usuario (Typhlosion Nv.146,
+// Quality 1.29x, 129 IVs, contra Scizor): 3.764 derrotas en 9h10m
+// y 3.682.114 XP/h mostradas por el juego.
+const REAL_HUNT_SECONDS_PER_KILL = 8.7672688629;
+const HUNT_AOE_XP_MULTIPLIER = 1.5;
+const HUNT_XP_CALIBRATION = 0.9950338876;
+
 const normalize = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 /** Selector de Pokémon con búsqueda (igual que en la Calculadora de Poder) */
@@ -182,13 +189,13 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [selectedAttackerId, setSelectedAttackerId] = useState<number>(
     initialPokemon?.id || (savedTeam.length > 0 ? savedTeam[0].id : 157) // Default to Typhlosion
   );
-  const [playerLevel, setPlayerLevel] = useState<number>(initialPlayerLevel || 20);
+  const [playerLevel, setPlayerLevel] = useState<number>(initialPlayerLevel || 146);
   const [playerTotalIv, setPlayerTotalIv] = useState<number>(129); // 0-192 (calibrado a 129)
   const [playerQuality, setPlayerQuality] = useState<number>(1.29); // Quality (calibrado a 1.29x)
   const [clanRank, setClanRank] = useState<number>(0); // Rank 0 (sin rango de clan)
   const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(true); // Multi-target bonus
   const [isVipBonus, setIsVipBonus] = useState<boolean>(false); // Cuenta VIP: +50% EXP
-  const [huntCadenceMode, setHuntCadenceMode] = useState<'real' | 'fast'>('real'); // 'real' = 5.5s delay cueva (~373/h), 'fast' = 1.3s teórico
+  const [huntCadenceMode, setHuntCadenceMode] = useState<'real' | 'fast'>('real'); // 'real' = cadencia calibrada (~410,6 derrotas/h)
 
   // Level Restriction Rule: Player level restricts hunts accessible
   const [restrictToPlayerLevel, setRestrictToPlayerLevel] = useState<boolean>(true);
@@ -328,7 +335,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
   const dailyBonusTypes = [
     'NONE', 'NORMAL', 'FIRE', 'WATER', 'GRASS', 'ELECTRIC', 'ICE',
-    'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
+    'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'ICE',
     'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY'
   ];
 
@@ -392,11 +399,44 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const defense = target.baseDef;
       const hp = target.baseHp;
       const bulk = hp * defense;
-      const xpPerKill = target.experience * (isVipBonus ? 1.5 : 1) * (dailyTypeBonus !== 'NONE' && (target.type1 === dailyTypeBonus || target.type2 === dailyTypeBonus) ? 1.2 : 1);
-      const elementalMultiplier = currentMove.type === target.weakness ? 2 : 1;
-      const damage = Math.max(1, Math.round(currentMove.power * elementalMultiplier * (attackerPokemon.baseAtk > attackerPokemon.baseSpAtk ? playerStats.pAtk : playerStats.pSpAtk) / Math.max(1, defense)));
+      // XP: usamos el bonus AoE real y una calibración empírica obtenida del
+      // Hunt Analyzer para que el benchmark de Scizor reproduzca el servidor.
+      const aoeMultiplier = hasAoeBonus ? HUNT_AOE_XP_MULTIPLIER : 1;
+      const vipMultiplier = isVipBonus ? 1.5 : 1;
+      const dailyMultiplier = dailyTypeBonus !== 'NONE' &&
+        (target.type1 === dailyTypeBonus || target.type2 === dailyTypeBonus) ? 1.2 : 1;
+      const xpPerKill = target.experience * aoeMultiplier * vipMultiplier * dailyMultiplier * HUNT_XP_CALIBRATION;
+
+      // Efectividad completa contra ambos tipos del objetivo, usando la tabla
+      // amplificada que ya utiliza el resto de la calculadora.
+      const elementalMultiplier = getAmplifiedMultiplier(
+        currentMove.type,
+        target.type1,
+        target.type2
+      );
+
+      const offense = attackerPokemon.baseAtk > attackerPokemon.baseSpAtk
+        ? playerStats.pAtk
+        : playerStats.pSpAtk;
+
+      const damage = Math.max(
+        1,
+        Math.round(
+          currentMove.power *
+          elementalMultiplier *
+          offense /
+          Math.max(1, defense)
+        )
+      );
+
       const timeToKill = Math.max(1, Math.ceil(hp / damage));
-      const xpPerHour = xpPerKill * 3600 / (timeToKill * (huntCadenceMode === 'real' ? 5.5 : 1.3));
+
+      // El modo Real queda calibrado con la cadencia observada:
+      // 3.764 derrotas / 9h10m = 410,618 derrotas/h = 8,767 s por ciclo.
+      const secondsPerKill = huntCadenceMode === 'real'
+        ? REAL_HUNT_SECONDS_PER_KILL
+        : 1.3;
+      const xpPerHour = xpPerKill * 3600 / (timeToKill * secondsPerKill);
       const potionSafety = Math.max(0, Math.round(100 - timeToKill * 2));
       const netProfit = xpPerHour - timeToKill;
       return { ...target, xpPerKill, elementalMultiplier, timeToKill, xpPerHour, potionSafety, netProfit, lowestDefense: defense, lowestHp: hp, lowestBulk: bulk };
@@ -406,7 +446,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const bv = b[sortBy] as number;
       return sortDirection === 'asc' ? av - bv : bv - av;
     }).slice(0, maxResults);
-  }, [filteredPokemon, isVipBonus, dailyTypeBonus, currentMove, attackerPokemon, playerStats, huntCadenceMode, sortBy, sortDirection, maxResults]);
+  }, [filteredPokemon, hasAoeBonus, isVipBonus, dailyTypeBonus, currentMove, attackerPokemon, playerStats, huntCadenceMode, sortBy, sortDirection, maxResults]);
 
   return (
     <div className="space-y-4">
