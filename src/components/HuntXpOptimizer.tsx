@@ -115,10 +115,12 @@ const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
   // sin TM de área. La base se normaliza para que el delta de combate siga
   // reaccionando a IV/Quality/Speed sin perder el ancla real.
   888: 11.6694872086,
-  // Ancient Pinsir: Hunt Analyzer real = 288 derrotados en 40m31s = 426,49 kills/h.
-  // Con Typhlosion IV129 / Q1.29 / Lv150, el combate calculado es ~0,464s;
-  // se conserva el ciclo real y se deja que IV/Quality/Speed sigan ajustándolo.
-  907: 8.5767215792,
+  // Ancient Pinsir — calibración actualizada con Hunt Analyzer real:
+  // 465 derrotas en 1h04m = 435,9375 kills/h.
+  // El ciclo observado es 3840 / 465 = 8,2580645 s por derrota.
+  // Se usa como nuevo ancla y el delta de combate sigue permitiendo que
+  // IV / Quality / Speed modifiquen la cadencia alrededor de este punto.
+  907: 8.2580645161,
   // Ancient Meganium: Hunt Analyzer real = 81 derrotados en 18m28s = 263,17 kills/h.
   // Perfil de referencia: Typhlosion Lv150 / IV129 / Q1.29.
   // El ciclo observado (13,679s) se separa del tiempo de combate calculado (~0,690s)
@@ -129,10 +131,12 @@ const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
 // XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
 const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
   878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR),
-  // Ancient Pinsir: XP Analyzer = 9.560.287 / 288 = 33.195,44 XP/kill.
-  // Recompensa visible: 13.508 base + 6.754 VIP + 13.508 evento = 33.770.
-  // Factor empírico de sesión para cuadrar XP/h real.
-  907: 0.9876047109,
+  // Ancient Pinsir — XP real de esta sesión:
+  // 15.537.577 XP / 465 derrotas = 33.414,14 XP/derrota.
+  // Con base 13.508 × VIP 1,5 × evento XP×2 y el factor global de calibración,
+  // el factor específico resultante es 0,8284261619.
+  // Esto ancla el modelo a ~14.528.643 XP/h con 435,9375 kills/h.
+  907: 0.8284261619,
   // Ancient Meganium: 2.640.814 XP / 81 derrotas = 32.602,64 XP/kill.
   // Frente a 13.508 base × 1,5 VIP × 2 evento.
   903: 0.8045267490
