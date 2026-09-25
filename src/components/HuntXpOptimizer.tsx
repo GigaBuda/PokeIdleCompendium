@@ -487,7 +487,12 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       // deciden la cadencia mediante reglas 1/2/3+. La velocidad de la hunt
       // parte de tiempos reales del Hunt Analyzer (derrotas / duración).
       const hitsToKill = Math.max(1, Math.ceil(wildMaxHp / finalDamagePerHit));
-      const combatTimeSeconds = +(hitsToKill * attackIntervalSeconds).toFixed(2);
+      // Para el optimizador usamos también la fracción de la vida que consume
+      // cada golpe. Así IV/Quality no quedan "congelados" mientras sigan dentro
+      // del mismo número entero de golpes. La hunt real sigue mostrando los
+      // golpes enteros, pero XP/h se estima de forma continua.
+      const continuousHitsToKill = Math.max(0.1, wildMaxHp / finalDamagePerHit);
+      const combatTimeSeconds = +(continuousHitsToKill * attackIntervalSeconds).toFixed(2);
 
       // Modelo continuo de tiempo de hunt:
       // - Una sesión real fija el punto de referencia de segundos por derrota.
@@ -1002,15 +1007,28 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
             <div className="flex items-center justify-between pt-1">
               <label className="text-slate-400 font-medium text-xs">IVs Totales (0-192)</label>
-              <span className="font-mono text-amber-400 font-bold text-xs">{playerTotalIv} / 192</span>
+              <input
+                type="number"
+                min="0"
+                max="192"
+                step="1"
+                value={playerTotalIv}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setPlayerTotalIv(Number.isFinite(value) ? Math.min(192, Math.max(0, Math.round(value))) : 0);
+                }}
+                className="w-16 rounded bg-slate-900 border border-slate-800 px-1.5 py-0.5 text-center font-mono text-amber-400 font-bold text-xs focus:outline-none focus:border-amber-500"
+              />
+              <span className="font-mono text-slate-500 text-xs">/ 192</span>
             </div>
             <input
               type="range"
               min="0"
               max="192"
+              step="1"
               value={playerTotalIv}
-              onChange={(e) => setPlayerTotalIv(Number(e.target.value))}
-              className="w-full accent-amber-500"
+              onChange={(e) => setPlayerTotalIv(Math.min(192, Math.max(0, Number(e.target.value))))}
+              className="w-full accent-amber-500 cursor-pointer"
             />
           </div>
 
@@ -1022,15 +1040,29 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                 {playerQuality.toFixed(2)}x · {getQualityBand(playerQuality).name} ({getQualityBand(playerQuality).rangeLabel})
               </span>
             </div>
-            <input
-              type="range"
-              min="0.8"
-              max="4.5"
-              step="0.01"
-              value={playerQuality}
-              onChange={(e) => setPlayerQuality(Number(e.target.value))}
-              className="w-full accent-amber-500"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="range"
+                min="0.8"
+                max="4.5"
+                step="0.01"
+                value={playerQuality}
+                onChange={(e) => setPlayerQuality(Number(e.target.value))}
+                className="w-full accent-amber-500 cursor-pointer"
+              />
+              <input
+                type="number"
+                min="0.8"
+                max="4.5"
+                step="0.01"
+                value={playerQuality}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  setPlayerQuality(Number.isFinite(value) ? Math.min(4.5, Math.max(0.8, value)) : 0.8);
+                }}
+                className="w-16 rounded bg-slate-900 border border-slate-800 px-1.5 py-0.5 text-center font-mono text-white font-bold text-xs focus:outline-none focus:border-amber-500"
+              />
+            </div>
 
             <div className="flex items-center justify-between pt-1">
               <label className="text-slate-400 font-medium text-xs">Rango de Clan (+6% / rango)</label>
