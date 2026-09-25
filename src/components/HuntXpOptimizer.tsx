@@ -93,6 +93,7 @@ const REAL_HUNT_LEVEL_CALIBRATIONS: Record<number, number> = {
 const REAL_HUNT_LEVEL_XP_FACTORS: Record<number, number> = {
   150: 19080 / (13508 * 1.5)
 };
+
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
 // Una derrota real de Skarmory con el perfil de referencia se resuelve en 1 golpe.
@@ -101,6 +102,19 @@ const REAL_HUNT_REFERENCE_COMBAT_SECONDS = 0.60;
 
 // Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
 const XP_CALIBRATION_FACTOR = 0.9953234328;
+
+// Calibración específica de Brave Venusaur con Typhlosion.
+// Sesión real: 80 derrotas en 21m01s = 228,39 derrotas/h.
+// El ciclo se ajusta restando el delta de combate de referencia (0,60s)
+// para que IV/Quality sigan modificando la velocidad alrededor de este punto.
+const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
+  878: 3600 / (80 / (21 + 1 / 60)) - (0.66 - REAL_HUNT_REFERENCE_COMBAT_SECONDS)
+};
+
+// XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
+const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
+  878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR)
+};
 
 /** Selector de Pokémon con búsqueda (igual que en la Calculadora de Poder) */
 const SpeciesSelect: React.FC<{ value: number; onChange: (id: number) => void }> = ({ value, onChange }) => {
@@ -519,6 +533,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       //   ~20% menos de ciclo en 1-2 golpes y ~15% menos desde 3 golpes;
       //   mantenemos ese efecto para que el checkbox vuelva a afectar la XP/h.
       const calibratedCycleSeconds =
+        REAL_HUNT_SPECIES_CALIBRATIONS[target.id] ??
         REAL_HUNT_CALIBRATIONS[target.id] ??
         REAL_HUNT_LEVEL_CALIBRATIONS[wildLevel];
       const fallbackCycleSeconds = Math.max(
@@ -555,8 +570,13 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
       const huntLevelXpFactor = REAL_HUNT_LEVEL_XP_FACTORS[wildLevel] ?? 1;
+      const speciesXpFactor = REAL_HUNT_SPECIES_XP_FACTORS[target.id] ?? 1;
       const xpPerHourExact =
-        killsPerHourExact * xpPerKill * XP_CALIBRATION_FACTOR * huntLevelXpFactor;
+        killsPerHourExact *
+        xpPerKill *
+        XP_CALIBRATION_FACTOR *
+        huntLevelXpFactor *
+        speciesXpFactor;
       const xpPerHour = Math.round(xpPerHourExact);
 
       // Enemy frailty classification using EFFECTIVE BULK (HP × Defensa)
