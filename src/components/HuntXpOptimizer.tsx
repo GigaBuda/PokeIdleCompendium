@@ -78,7 +78,8 @@ const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
   49: 3600 / 425,     // Venomoth: ~425 derrotas/h
   163: 3600 / 186,    // Xatu: ~186 derrotas/h
   205: 3600 / 538,    // Forretress: ~538 derrotas/h
-  227: 3600 / (4100 / (9 + 55 / 60)) // Skarmory: 4.100 derrotas en 9h55m
+  227: 3600 / (4100 / (9 + 55 / 60)), // Skarmory: 4.100 derrotas en 9h55m
+  888: 3600 / (6000000 / (13508 * 1.5)) // Furious Skarmory: ~6M XP/h, VIP, sin TM de área
 };
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
@@ -391,7 +392,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     const pSpeed = calculateStat(attackerPokemon.baseSpeed, statGrowth, playerLevel, playerQuality);
     const power = calculatePower(pHp, pAtk, pDef, pSpAtk, pSpDef, pSpeed, playerQuality);
 
-    const attackIntervalSeconds = Math.max(0.6, +(1.5 - (pSpeed / 300)).toFixed(2));
+    const attackIntervalSeconds = Math.max(0.6, 1.5 - (pSpeed / 300));
 
     const moveType = ('isCustom' in currentMove && currentMove.isCustom) ? selectedMoveType : currentMove.type;
     const movePower = currentMove.power || 40;
@@ -481,7 +482,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
       // Real Player Damage against target (clan bonus ya aplicado en attackerOffenseStat / pDef)
       const rawDamage = ((2 * playerLevel / 5 + 2) * movePower * (attackerOffenseStat / Math.max(1, targetDefense))) / 50 + 2;
-      const finalDamagePerHit = Math.max(1, Math.round(rawDamage * elementalMultiplier * stabMultiplier));
+      const continuousDamagePerHit = Math.max(1, rawDamage * elementalMultiplier * stabMultiplier);
+      const finalDamagePerHit = Math.max(1, Math.round(continuousDamagePerHit));
 
       // Los golpes siguen disponibles como dato interno de daño, pero YA NO
       // deciden la cadencia mediante reglas 1/2/3+. La velocidad de la hunt
@@ -491,8 +493,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       // cada golpe. Así IV/Quality no quedan "congelados" mientras sigan dentro
       // del mismo número entero de golpes. La hunt real sigue mostrando los
       // golpes enteros, pero XP/h se estima de forma continua.
-      const continuousHitsToKill = Math.max(0.1, wildMaxHp / finalDamagePerHit);
-      const combatTimeSeconds = +(continuousHitsToKill * attackIntervalSeconds).toFixed(2);
+      const continuousHitsToKill = Math.max(0.1, wildMaxHp / continuousDamagePerHit);
+      const combatTimeSeconds = continuousHitsToKill * attackIntervalSeconds;
 
       // Modelo continuo de tiempo de hunt:
       // - Una sesión real fija el punto de referencia de segundos por derrota.
@@ -510,14 +512,13 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         ? (hitsToKill <= 2 ? 0.80 : 14 / 16.5)
         : 1.0;
       const combatDeltaSeconds = combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS;
+      const calibratedBaseCycle = calibratedCycleSeconds !== undefined
+        ? calibratedCycleSeconds
+        : fallbackCycleSeconds;
       const totalCycleSeconds = Math.max(
         0.6,
-        +(
-          calibratedCycleSeconds !== undefined
-            ? calibratedCycleSeconds * aoeCycleMultiplier + combatDeltaSeconds
-            : fallbackCycleSeconds * aoeCycleMultiplier
-        ).toFixed(3)
-      );
+        calibratedBaseCycle + combatDeltaSeconds
+      ) * aoeCycleMultiplier;
 
       // No redondeamos la tasa interna: el redondeo solo es visual. De este modo
       // pequeños cambios de IV/Quality siguen llegando hasta la XP/h.
