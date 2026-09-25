@@ -82,7 +82,6 @@ const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
 };
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
-const XP_CALIBRATION_FACTOR = 0.9953234328;
 
 // Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
 const XP_CALIBRATION_FACTOR = 0.9953234328;
