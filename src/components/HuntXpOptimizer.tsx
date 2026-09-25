@@ -118,9 +118,12 @@ const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
   // Ancient Pinsir — calibración actualizada con Hunt Analyzer real:
   // 465 derrotas en 1h04m = 435,9375 kills/h.
   // El ciclo observado es 3840 / 465 = 8,2580645 s por derrota.
-  // Se usa como nuevo ancla y el delta de combate sigue permitiendo que
-  // IV / Quality / Speed modifiquen la cadencia alrededor de este punto.
-  907: 8.2580645161,
+  // En el perfil actual el combate calculado es ~0,20s, mientras que la referencia
+  // de combate es 0,60s; el modelo resta ese delta. Por eso el ancla base debe ser
+  // 8,6580645s para que el ciclo FINAL sea 8,2580645s en IV129 / Q1.29 / Lv191.
+  // Así la calibración coincide con la sesión real (~435,94 kills/h) y sigue
+  // reaccionando a cambios de IV / Quality / Speed.
+  907: 8.6580645161,
   // Ancient Meganium: Hunt Analyzer real = 81 derrotados en 18m28s = 263,17 kills/h.
   // Perfil de referencia: Typhlosion Lv150 / IV129 / Q1.29.
   // El ciclo observado (13,679s) se separa del tiempo de combate calculado (~0,690s)
