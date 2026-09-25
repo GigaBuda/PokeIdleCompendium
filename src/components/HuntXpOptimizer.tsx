@@ -739,13 +739,22 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
       const wildLevel = target.huntLevel || 50;
       const isLevelLocked = wildLevel > playerLevel;
-      // El bonus de Tipo del Día solo existe si el filtro manual está seleccionado.
-      // 'NONE' = 1.0x siempre, incluso durante calibraciones del Hunt Analyzer.
-      const manuallySelectedDailyType = dailyTypeBonus !== 'NONE';
+      // Tipo del Día es un bonus EXPLÍCITO y opt-in:
+      // - NONE (valor inicial) = 0% para TODAS las especies.
+      // - Solo el tipo seleccionado recibe +20%.
+      // - Se compara contra type1/type2 de la presa, nunca de forma global.
+      // - Cualquier valor inválido se trata como NONE para evitar aplicar
+      //   accidentalmente el bonus durante una calibración o al restaurar estado.
+      const selectedDailyType =
+        dailyTypeBonus !== 'NONE' &&
+        dailyBonusTypes.includes(dailyTypeBonus)
+          ? dailyTypeBonus.toUpperCase()
+          : null;
+      const targetType1 = target.type1?.toUpperCase() ?? '';
+      const targetType2 = target.type2?.toUpperCase() ?? '';
       const hasDailyTypeBonus =
-        manuallySelectedDailyType &&
-        (target.type1.toUpperCase() === dailyTypeBonus ||
-          target.type2?.toUpperCase() === dailyTypeBonus);
+        selectedDailyType !== null &&
+        (targetType1 === selectedDailyType || targetType2 === selectedDailyType);
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1;
       const vipXpMult = isVipBonus ? 1.5 : 1;
       const eventXpMult = hasDoubleXpEvent ? 2 : 1;
@@ -815,8 +824,12 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
       const captureValuePerKill = (target.priceNpc || 1500) / 47;
       const captureValuePerHour = Math.round(combat.killsPerHourExact * captureValuePerKill);
+      // El +20% de loot usa exactamente la misma condición que el +20% XP:
+      // solo la especie cuyo type1/type2 coincide con el tipo seleccionado.
       const dailyLootMult = hasDailyTypeBonus ? 1.2 : 1;
-      const grossLootPerHour = Math.round(combat.killsPerHourExact * expectedLootValuePerKill * dailyLootMult);
+      const grossLootPerHour = Math.round(
+        combat.killsPerHourExact * expectedLootValuePerKill * dailyLootMult
+      );
       const BALL_COST_PER_KILL = 90;
       const POTION_UNIT_COST = 75;
       const potionCostPerKill = (potionsPer100Kills / 100) * POTION_UNIT_COST;
