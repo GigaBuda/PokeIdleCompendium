@@ -50196,7 +50196,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
   }
 
   {
-    "id": 10601, "name": "Ancient Pupitar", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 890, "name": "Ancient Pupitar", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 410, "bulk": 210, "dps": 149, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "EPIC", "type1": "ROCK", "type2": "GROUND", "baseHp": 70, "baseAtk": 84, "baseDef": 70, "baseSpAtk": 65, "baseSpDef": 70, "baseSpeed": 51, "totalStats": 410,
     "huntLevel": 150, "priceNpc": 32500, "sellValue": 32500, "experience": 13508, "evolvesToId": 248, "evolveLevel": 100, "captureBase": 100,
@@ -50204,7 +50204,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Rock Throw","type":"ROCK","power":96,"learnLevel":1,"tm":null},{"name":"Mud-Slap","type":"GROUND","power":56,"learnLevel":5,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":10,"tm":null},{"name":"Rock Blast","type":"ROCK","power":120,"learnLevel":16,"tm":null},{"name":"Mud Bomb","type":"GROUND","power":56,"learnLevel":22,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":30,"tm":null},{"name":"Stone Edge","type":"ROCK","power":56,"learnLevel":38,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":45,"tm":null}], "loot": []
   },
   {
-    "id": 10602, "name": "Taekwondo Hitmonchan", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 891, "name": "Taekwondo Hitmonchan", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 455, "bulk": 239, "dps": 140, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "FIGHTING", "type2": null, "baseHp": 50, "baseAtk": 105, "baseDef": 79, "baseSpAtk": 35, "baseSpDef": 110, "baseSpeed": 76, "totalStats": 455,
     "huntLevel": 150, "priceNpc": 32750, "sellValue": 32750, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50212,7 +50212,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Focus Punch","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Triple Punch","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Ultimate Champion","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Elemental Hands","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Mega Punch","type":"NORMAL","power":96,"learnLevel":10,"tm":null},{"name":"Revenge","type":"BUG","power":56,"learnLevel":1,"tm":null}], "loot": []
   },
   {
-    "id": 10603, "name": "Ancient Hypno", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 892, "name": "Ancient Hypno", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 483, "bulk": 270, "dps": 146, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "PSYCHIC", "type2": null, "baseHp": 85, "baseAtk": 73, "baseDef": 70, "baseSpAtk": 73, "baseSpDef": 115, "baseSpeed": 67, "totalStats": 483,
     "huntLevel": 150, "priceNpc": 11000, "sellValue": 11000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50220,7 +50220,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Dream Eater","type":"PSYCHIC","power":56,"learnLevel":1,"tm":null},{"name":"Hypnosis","type":"PSYCHIC","power":56,"learnLevel":1,"tm":null},{"name":"Miracle Eye","type":"PSYCHIC","power":10,"learnLevel":1,"tm":null},{"name":"Psybeam","type":"PSYCHIC","power":56,"learnLevel":1,"tm":null},{"name":"Psywave","type":"PSYCHIC","power":56,"learnLevel":1,"tm":null},{"name":"Synchronoise","type":"PSYCHIC","power":56,"learnLevel":1,"tm":null},{"name":"Confusion","type":"PSYCHIC","power":80,"learnLevel":6,"tm":null},{"name":"Psy Pulse","type":"PSYCHIC","power":96,"learnLevel":10,"tm":null},{"name":"Nasty Plot","type":"DARK","power":120,"learnLevel":16,"tm":null},{"name":"Psychic","type":"PSYCHIC","power":96,"learnLevel":1,"tm":null}], "loot": []
   },
   {
-    "id": 10604, "name": "Roll Donphan", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 893, "name": "Roll Donphan", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 500, "bulk": 270, "dps": 180, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "RARE", "type1": "GROUND", "type2": null, "baseHp": 90, "baseAtk": 120, "baseDef": 120, "baseSpAtk": 60, "baseSpDef": 60, "baseSpeed": 50, "totalStats": 500,
     "huntLevel": 150, "priceNpc": 13000, "sellValue": 13000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50228,7 +50228,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Mud-Slap","type":"GROUND","power":56,"learnLevel":1,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Mud Bomb","type":"GROUND","power":56,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Earthquake","type":"GROUND","power":56,"learnLevel":22,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":30,"tm":null}], "loot": []
   },
   {
-    "id": 10605, "name": "Milch-Miltank", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 894, "name": "Milch-Miltank", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 490, "bulk": 270, "dps": 120, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "UNCOMMON", "type1": "NORMAL", "type2": null, "baseHp": 95, "baseAtk": 80, "baseDef": 105, "baseSpAtk": 40, "baseSpDef": 70, "baseSpeed": 100, "totalStats": 490,
     "huntLevel": 150, "priceNpc": 60000, "sellValue": 60000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50236,7 +50236,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Body Slam","type":"NORMAL","power":85,"learnLevel":24,"tm":null},{"name":"Zen Headbutt","type":"PSYCHIC","power":80,"learnLevel":29,"tm":null},{"name":"Wake-Up Slap","type":"FIGHTING","power":70,"learnLevel":50,"tm":null},{"name":"Stomp","type":"NORMAL","power":65,"learnLevel":8,"tm":null},{"name":"Tackle","type":"NORMAL","power":50,"learnLevel":1,"tm":null},{"name":"Rollout","type":"ROCK","power":30,"learnLevel":19,"tm":null}], "loot": []
   },
   {
-    "id": 10606, "name": "Enigmatic Girafarig", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 895, "name": "Enigmatic Girafarig", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 455, "bulk": 200, "dps": 170, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "UNCOMMON", "type1": "NORMAL", "type2": "PSYCHIC", "baseHp": 70, "baseAtk": 80, "baseDef": 65, "baseSpAtk": 90, "baseSpDef": 65, "baseSpeed": 85, "totalStats": 455,
     "huntLevel": 150, "priceNpc": 60000, "sellValue": 60000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50244,7 +50244,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Scratch","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Psywave","type":"PSYCHIC","power":56,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Stomp","type":"NORMAL","power":80,"learnLevel":22,"tm":null},{"name":"Heart Stamp","type":"PSYCHIC","power":56,"learnLevel":30,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":38,"tm":null},{"name":"Thrash","type":"NORMAL","power":120,"learnLevel":45,"tm":null}], "loot": []
   },
   {
-    "id": 10607, "name": "Evil Cloyster", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 896, "name": "Evil Cloyster", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 525, "bulk": 275, "dps": 180, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "WATER", "type2": "ICE", "baseHp": 50, "baseAtk": 95, "baseDef": 180, "baseSpAtk": 85, "baseSpDef": 45, "baseSpeed": 70, "totalStats": 525,
     "huntLevel": 150, "priceNpc": 10200, "sellValue": 10200, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50252,7 +50252,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Aurora Beam","type":"WATER","power":56,"learnLevel":1,"tm":null},{"name":"Clamp","type":"WATER","power":56,"learnLevel":1,"tm":null},{"name":"Harden","type":"NORMAL","power":10,"learnLevel":1,"tm":null},{"name":"Lick","type":"GHOST","power":56,"learnLevel":1,"tm":null},{"name":"Bubbles","type":"WATER","power":56,"learnLevel":1,"tm":null},{"name":"Super Sonic","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Ice Beam","type":"ICE","power":96,"learnLevel":10,"tm":null},{"name":"Blizzard","type":"ICE","power":200,"learnLevel":36,"tm":null}], "loot": []
   },
   {
-    "id": 10608, "name": "Furious Sandslash", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 897, "name": "Furious Sandslash", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 450, "bulk": 240, "dps": 145, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "GROUND", "type2": null, "baseHp": 75, "baseAtk": 100, "baseDef": 110, "baseSpAtk": 45, "baseSpDef": 55, "baseSpeed": 65, "totalStats": 450,
     "huntLevel": 150, "priceNpc": 11000, "sellValue": 11000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50260,7 +50260,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Dig","type":"GROUND","power":40,"learnLevel":1,"tm":null},{"name":"Earthquake","type":"GROUND","power":56,"learnLevel":1,"tm":null},{"name":"Scratch","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Smack Down","type":"ROCK","power":56,"learnLevel":1,"tm":null},{"name":"Slashing Blow","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Rollout","type":"ROCK","power":96,"learnLevel":10,"tm":null},{"name":"Earth Power","type":"GROUND","power":120,"learnLevel":16,"tm":null},{"name":"Fissure","type":"GROUND","power":120,"learnLevel":16,"tm":null},{"name":"Sandstorm","type":"ROCK","power":160,"learnLevel":26,"tm":null}], "loot": []
   },
   {
-    "id": 10609, "name": "Freezing Dewgong", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 898, "name": "Freezing Dewgong", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 475, "bulk": 265, "dps": 140, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "WATER", "type2": "ICE", "baseHp": 90, "baseAtk": 70, "baseDef": 80, "baseSpAtk": 70, "baseSpDef": 95, "baseSpeed": 70, "totalStats": 475,
     "huntLevel": 150, "priceNpc": 12000, "sellValue": 12000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50268,7 +50268,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Aurora Beam","type":"WATER","power":56,"learnLevel":1,"tm":null},{"name":"Icy Wind","type":"ICE","power":56,"learnLevel":1,"tm":null},{"name":"Safeguard","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Ice Shards","type":"ICE","power":56,"learnLevel":1,"tm":null},{"name":"Aqua Tail","type":"WATER","power":64,"learnLevel":2,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":6,"tm":null},{"name":"Ice Beam","type":"ICE","power":96,"learnLevel":10,"tm":null},{"name":"Brine","type":"WATER","power":120,"learnLevel":16,"tm":null},{"name":"Rest","type":"PSYCHIC","power":160,"learnLevel":26,"tm":null},{"name":"Blizzard","type":"ICE","power":200,"learnLevel":36,"tm":null}], "loot": []
   },
   {
-    "id": 10610, "name": "Brave Noctowl", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 899, "name": "Brave Noctowl", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 452, "bulk": 246, "dps": 136, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "UNCOMMON", "type1": "NORMAL", "type2": "FLYING", "baseHp": 100, "baseAtk": 50, "baseDef": 50, "baseSpAtk": 86, "baseSpDef": 96, "baseSpeed": 70, "totalStats": 452,
     "huntLevel": 150, "priceNpc": 11500, "sellValue": 11500, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50276,7 +50276,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Scratch","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Peck","type":"FLYING","power":56,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Stomp","type":"NORMAL","power":80,"learnLevel":22,"tm":null},{"name":"Drill Peck","type":"FLYING","power":56,"learnLevel":30,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":38,"tm":null},{"name":"Thrash","type":"NORMAL","power":120,"learnLevel":45,"tm":null}], "loot": []
   },
   {
-    "id": 10611, "name": "Tribal Feraligatr", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 900, "name": "Tribal Feraligatr", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 530, "bulk": 268, "dps": 184, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "RARE", "type1": "WATER", "type2": null, "baseHp": 85, "baseAtk": 105, "baseDef": 100, "baseSpAtk": 79, "baseSpDef": 83, "baseSpeed": 78, "totalStats": 530,
     "huntLevel": 150, "priceNpc": 18000, "sellValue": 18000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50284,7 +50284,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Water Gun","type":"WATER","power":64,"learnLevel":1,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Water Pulse","type":"WATER","power":120,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Surf","type":"WATER","power":160,"learnLevel":22,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":30,"tm":null}], "loot": []
   },
   {
-    "id": 10612, "name": "Brave Nidoking", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 901, "name": "Brave Nidoking", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 505, "bulk": 233, "dps": 187, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "POISON", "type2": "GROUND", "baseHp": 81, "baseAtk": 102, "baseDef": 77, "baseSpAtk": 85, "baseSpDef": 75, "baseSpeed": 85, "totalStats": 505,
     "huntLevel": 150, "priceNpc": 12250, "sellValue": 12250, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50292,7 +50292,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Quick Attack","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Rage","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Smack Down","type":"ROCK","power":56,"learnLevel":1,"tm":null},{"name":"Venoshock","type":"POISON","power":56,"learnLevel":1,"tm":null},{"name":"Horn Burst","type":"NORMAL","power":120,"learnLevel":1,"tm":null},{"name":"Poison Fang","type":"POISON","power":56,"learnLevel":4,"tm":null},{"name":"Poison Tail","type":"POISON","power":96,"learnLevel":10,"tm":null},{"name":"Sludge Bomb","type":"POISON","power":104,"learnLevel":12,"tm":null},{"name":"Poison Jab","type":"POISON","power":56,"learnLevel":16,"tm":null},{"name":"Toxic","type":"POISON","power":120,"learnLevel":16,"tm":null}], "loot": []
   },
   {
-    "id": 10613, "name": "Banshee Misdreavus", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 902, "name": "Banshee Misdreavus", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 435, "bulk": 205, "dps": 145, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "UNCOMMON", "type1": "GHOST", "type2": null, "baseHp": 60, "baseAtk": 60, "baseDef": 60, "baseSpAtk": 85, "baseSpDef": 85, "baseSpeed": 85, "totalStats": 435,
     "huntLevel": 150, "priceNpc": 100000, "sellValue": 100000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50300,7 +50300,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Lick","type":"GHOST","power":56,"learnLevel":1,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Shadow Sneak","type":"GHOST","power":40,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Shadow Claw","type":"GHOST","power":144,"learnLevel":22,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":30,"tm":null}], "loot": []
   },
   {
-    "id": 10614, "name": "Ancient Meganium", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 903, "name": "Ancient Meganium", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 525, "bulk": 280, "dps": 165, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "RARE", "type1": "GRASS", "type2": null, "baseHp": 80, "baseAtk": 82, "baseDef": 100, "baseSpAtk": 83, "baseSpDef": 100, "baseSpeed": 80, "totalStats": 525,
     "huntLevel": 150, "priceNpc": 18000, "sellValue": 18000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50308,7 +50308,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Absorb","type":"GRASS","power":56,"learnLevel":1,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Mega Drain","type":"GRASS","power":40,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Solar Beam","type":"GRASS","power":120,"learnLevel":22,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":30,"tm":null}], "loot": []
   },
   {
-    "id": 10615, "name": "Heavy Piloswine", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 904, "name": "Heavy Piloswine", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 450, "bulk": 240, "dps": 160, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "UNCOMMON", "type1": "ICE", "type2": "GROUND", "baseHp": 100, "baseAtk": 100, "baseDef": 80, "baseSpAtk": 60, "baseSpDef": 60, "baseSpeed": 50, "totalStats": 450,
     "huntLevel": 150, "priceNpc": 11000, "sellValue": 11000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50316,7 +50316,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Icy Wind","type":"ICE","power":56,"learnLevel":1,"tm":null},{"name":"Mud-Slap","type":"GROUND","power":56,"learnLevel":5,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":10,"tm":null},{"name":"Ice Punch","type":"ICE","power":72,"learnLevel":16,"tm":null},{"name":"Mud Bomb","type":"GROUND","power":56,"learnLevel":22,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":30,"tm":null},{"name":"Ice Beam","type":"ICE","power":96,"learnLevel":38,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":45,"tm":null}], "loot": []
   },
   {
-    "id": 10616, "name": "Ancient Granbull", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 905, "name": "Ancient Granbull", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 450, "bulk": 225, "dps": 180, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "UNCOMMON", "type1": "FAIRY", "type2": null, "baseHp": 90, "baseAtk": 120, "baseDef": 75, "baseSpAtk": 60, "baseSpDef": 60, "baseSpeed": 45, "totalStats": 450,
     "huntLevel": 150, "priceNpc": 12500, "sellValue": 12500, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50324,7 +50324,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Fairy Wind","type":"FAIRY","power":40,"learnLevel":1,"tm":null},{"name":"Tackle","type":"NORMAL","power":56,"learnLevel":5,"tm":null},{"name":"Draining Kiss","type":"FAIRY","power":56,"learnLevel":10,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":16,"tm":null},{"name":"Moonblast","type":"FAIRY","power":95,"learnLevel":22,"tm":null},{"name":"Double-Edge","type":"NORMAL","power":120,"learnLevel":30,"tm":null}], "loot": []
   },
   {
-    "id": 10617, "name": "Charged Raichu", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 906, "name": "Charged Raichu", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 485, "bulk": 195, "dps": 180, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "ELECTRIC", "type2": null, "baseHp": 60, "baseAtk": 90, "baseDef": 55, "baseSpAtk": 90, "baseSpDef": 80, "baseSpeed": 110, "totalStats": 485,
     "huntLevel": 150, "priceNpc": 18000, "sellValue": 18000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50332,7 +50332,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Flash","type":"NORMAL","power":10,"learnLevel":1,"tm":null},{"name":"Swift","type":"NORMAL","power":72,"learnLevel":4,"tm":null},{"name":"Thunder Shock","type":"ELECTRIC","power":56,"learnLevel":4,"tm":null},{"name":"Thunderbolt","type":"ELECTRIC","power":72,"learnLevel":10,"tm":null},{"name":"Wild Charge","type":"ELECTRIC","power":120,"learnLevel":16,"tm":null},{"name":"Volt Tackle","type":"ELECTRIC","power":120,"learnLevel":16,"tm":null},{"name":"Thunder Wrath","type":"ELECTRIC","power":200,"learnLevel":36,"tm":null},{"name":"Electric Storm","type":"ELECTRIC","power":200,"learnLevel":40,"tm":null}], "loot": []
   },
   {
-    "id": 10618, "name": "Ancient Pinsir", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 907, "name": "Ancient Pinsir", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 500, "bulk": 235, "dps": 180, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "BUG", "type2": null, "baseHp": 65, "baseAtk": 125, "baseDef": 100, "baseSpAtk": 55, "baseSpDef": 70, "baseSpeed": 85, "totalStats": 500,
     "huntLevel": 150, "priceNpc": 40000, "sellValue": 40000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50340,7 +50340,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Brick Break","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Fury Cutter","type":"BUG","power":56,"learnLevel":1,"tm":null},{"name":"Guillotine","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Harden","type":"NORMAL","power":10,"learnLevel":1,"tm":null},{"name":"Revenge","type":"BUG","power":56,"learnLevel":1,"tm":null},{"name":"Swords Dance","type":"BUG","power":56,"learnLevel":1,"tm":null},{"name":"Bind","type":"BUG","power":56,"learnLevel":1,"tm":null},{"name":"Crunch","type":"DARK","power":72,"learnLevel":4,"tm":null},{"name":"Focus Blast","type":"FIGHTING","power":96,"learnLevel":10,"tm":null}], "loot": []
   },
   {
-    "id": 10619, "name": "Taekwondo Hitmonlee", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 908, "name": "Taekwondo Hitmonlee", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 455, "bulk": 213, "dps": 155, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "FIGHTING", "type2": null, "baseHp": 50, "baseAtk": 120, "baseDef": 53, "baseSpAtk": 35, "baseSpDef": 110, "baseSpeed": 87, "totalStats": 455,
     "huntLevel": 150, "priceNpc": 32750, "sellValue": 32750, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50348,7 +50348,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Hi Jump Kick","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Triple Kick Lee","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Furious Legs","type":"FIGHTING","power":56,"learnLevel":1,"tm":null},{"name":"Mega Kick","type":"NORMAL","power":96,"learnLevel":10,"tm":null}], "loot": []
   },
   {
-    "id": 10620, "name": "Furious Wigglytuff", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 909, "name": "Furious Wigglytuff", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 435, "bulk": 235, "dps": 155, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "NORMAL", "type2": "FAIRY", "baseHp": 140, "baseAtk": 70, "baseDef": 45, "baseSpAtk": 85, "baseSpDef": 50, "baseSpeed": 45, "totalStats": 435,
     "huntLevel": 150, "priceNpc": 18000, "sellValue": 18000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50356,7 +50356,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Dazzling Gleam","type":"FAIRY","power":56,"learnLevel":1,"tm":null},{"name":"Defense Curl","type":"NORMAL","power":10,"learnLevel":1,"tm":null},{"name":"Disarming Voice","type":"FAIRY","power":56,"learnLevel":1,"tm":null},{"name":"Heal Pulse","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Sing","type":"NORMAL","power":10,"learnLevel":1,"tm":null},{"name":"Play Rough","type":"FAIRY","power":72,"learnLevel":4,"tm":null},{"name":"Heart Pound","type":"FAIRY","power":96,"learnLevel":10,"tm":null},{"name":"Soft-Boiled","type":"NORMAL","power":96,"learnLevel":10,"tm":null}], "loot": []
   },
   {
-    "id": 10622, "name": "Hard Golem", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 911, "name": "Hard Golem", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 495, "bulk": 275, "dps": 175, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "ROCK", "type2": "GROUND", "baseHp": 80, "baseAtk": 120, "baseDef": 130, "baseSpAtk": 55, "baseSpDef": 65, "baseSpeed": 45, "totalStats": 495,
     "huntLevel": 150, "priceNpc": 15000, "sellValue": 15000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50364,7 +50364,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Harden","type":"NORMAL","power":10,"learnLevel":1,"tm":null},{"name":"Rock Slide","type":"ROCK","power":120,"learnLevel":1,"tm":null},{"name":"Rock Throw","type":"ROCK","power":96,"learnLevel":1,"tm":null},{"name":"Rollout","type":"ROCK","power":96,"learnLevel":10,"tm":null},{"name":"Rock Blast","type":"ROCK","power":120,"learnLevel":16,"tm":null},{"name":"Ancient Power","type":"ROCK","power":160,"learnLevel":26,"tm":null},{"name":"Rock Wrecker","type":"ROCK","power":200,"learnLevel":36,"tm":null},{"name":"Falling Rocks","type":"ROCK","power":200,"learnLevel":40,"tm":null}], "loot": []
   },
   {
-    "id": 10623, "name": "Ancient Marowak", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 912, "name": "Ancient Marowak", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 425, "bulk": 250, "dps": 130, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "GROUND", "type2": null, "baseHp": 60, "baseAtk": 80, "baseDef": 110, "baseSpAtk": 50, "baseSpDef": 80, "baseSpeed": 45, "totalStats": 425,
     "huntLevel": 150, "priceNpc": 11000, "sellValue": 11000, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
@@ -50372,7 +50372,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
     "attacks": [{"name":"Bone Rush","type":"GROUND","power":56,"learnLevel":1,"tm":null},{"name":"Bonemerang","type":"GROUND","power":56,"learnLevel":1,"tm":null},{"name":"Rage","type":"NORMAL","power":56,"learnLevel":1,"tm":null},{"name":"Smack Down","type":"ROCK","power":56,"learnLevel":1,"tm":null},{"name":"Bone club","type":"GROUND","power":56,"learnLevel":1,"tm":null},{"name":"Mud Shot","type":"GROUND","power":72,"learnLevel":4,"tm":null},{"name":"Headbutt","type":"NORMAL","power":80,"learnLevel":6,"tm":null},{"name":"Earth Power","type":"GROUND","power":120,"learnLevel":16,"tm":null},{"name":"Bulldoze","type":"GROUND","power":200,"learnLevel":36,"tm":null}], "loot": []
   },
   {
-    "id": 10624, "name": "Brave Nidoqueen", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
+    "id": 913, "name": "Brave Nidoqueen", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 505, "bulk": 262, "dps": 167, "qualityMult": 2.4, "hasAoE": false,
     "rarity": "COMMON", "type1": "POISON", "type2": "GROUND", "baseHp": 90, "baseAtk": 92, "baseDef": 87, "baseSpAtk": 75, "baseSpDef": 85, "baseSpeed": 76, "totalStats": 505,
     "huntLevel": 150, "priceNpc": 12250, "sellValue": 12250, "experience": 13508, "evolvesToId": null, "evolveLevel": null, "captureBase": 100,
