@@ -78,8 +78,20 @@ const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
   49: 3600 / 425,     // Venomoth: ~425 derrotas/h
   163: 3600 / 186,    // Xatu: ~186 derrotas/h
   205: 3600 / 538,    // Forretress: ~538 derrotas/h
-  227: 3600 / (4100 / (9 + 55 / 60)), // Skarmory: 4.100 derrotas en 9h55m
-  888: 3600 / (6000000 / (13508 * 1.5)) // Furious Skarmory: ~6M XP/h, VIP, sin TM de área
+  227: 3600 / (4100 / (9 + 55 / 60)) // Skarmory: 4.100 derrotas en 9h55m
+};
+
+// Hunt Lv.150: calibración compartida con sesiones reales del Hunt Analyzer.
+// Referencia actual: Brave Steelix, 295 derrotas/h.
+// Se aplica a todo Hunt 150 y luego el combate propio de cada especie ajusta la cadencia.
+const REAL_HUNT_LEVEL_CALIBRATIONS: Record<number, number> = {
+  150: 3600 / 295
+};
+
+// XP observado en Hunt Lv.150 con VIP: 915.840 XP / 48 derrotas = 19.080 XP/derrota.
+// El factor corrige la diferencia entre experience de la base de datos y XP real de la sesión.
+const REAL_HUNT_LEVEL_XP_FACTORS: Record<number, number> = {
+  150: 19080 / (13508 * 1.5)
 };
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
@@ -503,7 +515,9 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       //   los salvajes del área. El optimizador histórico lo modelaba como
       //   ~20% menos de ciclo en 1-2 golpes y ~15% menos desde 3 golpes;
       //   mantenemos ese efecto para que el checkbox vuelva a afectar la XP/h.
-      const calibratedCycleSeconds = REAL_HUNT_CALIBRATIONS[target.id];
+      const calibratedCycleSeconds =
+        REAL_HUNT_CALIBRATIONS[target.id] ??
+        REAL_HUNT_LEVEL_CALIBRATIONS[wildLevel];
       const fallbackCycleSeconds = Math.max(
         REAL_HUNT_REFERENCE_CYCLE_SECONDS,
         REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
@@ -537,7 +551,9 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1.0;
       const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
-      const xpPerHourExact = killsPerHourExact * xpPerKill * XP_CALIBRATION_FACTOR;
+      const huntLevelXpFactor = REAL_HUNT_LEVEL_XP_FACTORS[wildLevel] ?? 1;
+      const xpPerHourExact =
+        killsPerHourExact * xpPerKill * XP_CALIBRATION_FACTOR * huntLevelXpFactor;
       const xpPerHour = Math.round(xpPerHourExact);
 
       // Enemy frailty classification using EFFECTIVE BULK (HP × Defensa)
