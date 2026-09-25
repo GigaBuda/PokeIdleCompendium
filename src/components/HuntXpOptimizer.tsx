@@ -1045,8 +1045,16 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     return Math.round(topTarget.xpPerHour * 8);
   }, [topTarget]);
 
+  const variantSpriteIds: Record<number, number> = {
+    890: 247, 891: 107, 892: 97, 893: 232, 894: 241, 895: 203,
+    896: 91, 897: 28, 898: 87, 899: 164, 900: 160, 901: 34,
+    902: 200, 903: 154, 904: 221, 905: 210, 906: 26, 907: 127,
+    908: 106, 909: 40, 910: 65, 911: 76, 912: 105, 913: 31
+  };
+
   const getPokemonSprite = (id: number) => {
-    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+    const spriteId = variantSpriteIds[id] ?? id;
+    return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${spriteId}.png`;
   };
 
   const getTypeBadgeStyle = (type: string) => {
