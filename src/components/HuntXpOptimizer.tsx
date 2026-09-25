@@ -108,7 +108,11 @@ const XP_CALIBRATION_FACTOR = 0.9953234328;
 // El ciclo se ajusta restando el delta de combate de referencia (0,60s)
 // para que IV/Quality sigan modificando la velocidad alrededor de este punto.
 const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
-  878: (((21 + 1 / 60) * 60) / 80) - (0.66 - REAL_HUNT_REFERENCE_COMBAT_SECONDS)
+  878: (((21 + 1 / 60) * 60) / 80) - (0.66 - REAL_HUNT_REFERENCE_COMBAT_SECONDS),
+  // Furious Skarmory: sesión real ~6,0M XP/h con VIP, Typhlosion IV129/Q1.29,
+  // sin TM de área. La base se normaliza para que el delta de combate siga
+  // reaccionando a IV/Quality/Speed sin perder el ancla real.
+  888: 11.6694872086
 };
 
 // XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
