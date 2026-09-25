@@ -234,7 +234,10 @@ function projectHuntCombat(
     0.1,
     wildMaxHp / selected.continuousDamagePerHit
   );
-  const combatTimeSeconds = continuousHitsToKill * attackIntervalSeconds;
+  // El tiempo real de combate debe respetar golpes completos: no podemos
+  // contar 4.2 golpes como 4.2 ataques. La Defensa del salvaje entra aquí
+  // porque determina el daño por golpe y, por tanto, los golpes necesarios.
+  const combatTimeSeconds = hitsToKill * attackIntervalSeconds;
 
   const calibration = getHuntCalibration(target.id, wildLevel);
   const calibratedCycleSeconds = calibration?.cycleSeconds;
