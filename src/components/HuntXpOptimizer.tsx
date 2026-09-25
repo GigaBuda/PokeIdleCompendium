@@ -241,14 +241,16 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         isCustom: true
       };
     }
+
     const found = availableAttacks.find((a) => a.name === selectedMoveName);
     if (found) {
       return { ...found, isCustom: false };
     }
+
     // Auto-select smartest attack unlocked up to playerLevel:
     // If the attacker specializes in Special Attack (baseSpAtk > baseAtk),
     // prioritize Special moves (and STAB) so it exploits enemies with lower Def.Es.
-    // If the attacker specializes in Physical Attack, prioritize Physical moves (and STAB).
+    // If the attacker is Physical Attack, prioritize Physical moves (and STAB).
     const isSpecialAttacker = attackerPokemon.baseSpAtk > attackerPokemon.baseAtk;
     const learned = availableAttacks.filter((a) => a.learnLevel <= playerLevel && a.power > 0 && !a.tm);
     const candidateList = learned.length > 0 ? learned : availableAttacks.filter((a) => a.power > 0 && !a.tm);
@@ -278,6 +280,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       });
       return { ...sortedCandidates[0], isCustom: false };
     }
+
     return availableAttacks[0] || { name: 'Tackle', type: 'NORMAL', power: 40, learnLevel: 1, tm: null, isCustom: false };
   }, [selectedMoveName, availableAttacks, playerLevel, selectedMoveType, customMovePower, attackerPokemon]);
 
@@ -489,14 +492,14 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const timeToKillSeconds = +combatTimeSeconds.toFixed(1);
 
       // Official XP per kill:
-      // VIP / Boost: factor 1.4703 observado (Venomoth 2168 base → ~3188 XP/kill)
+      // VIP / Boost: +50% EXP
       // Tipo del Día: +20% XP si el objetivo es de ese tipo (type1 o type2)
       const hasDailyTypeBonus =
         dailyTypeBonus !== 'NONE' &&
         (target.type1.toUpperCase() === dailyTypeBonus ||
           target.type2?.toUpperCase() === dailyTypeBonus);
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1.0;
-      const baseXp = isVipBonus ? target.experience * 1.4703 : target.experience;
+      const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
       const xpPerHour = killsPerHour * xpPerKill;
 
@@ -767,6 +770,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     let candidates = allSimulatedTargets.filter(
       (t) => !t.isLevelLocked && selectedGenerations.includes(getPokemonGeneration(t.target.id))
     );
+
     if (candidates.length === 0) {
       candidates = allSimulatedTargets.filter((t) => !t.isLevelLocked);
       if (candidates.length === 0) return allSimulatedTargets[0];
@@ -788,6 +792,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         candidates = lvlCandidates;
       }
     }
+
     // Si no hay filtro de zona/nivel: NO forzar el hunt level máximo.
     // Elegimos el mejor XP/h real entre TODAS las hunts desbloqueadas
     // (así un Venomoth 2.5x de hunt 60 gana a un Octillery 0.33x de hunt 70).
@@ -1106,6 +1111,18 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                 />
                 <span className="text-xs text-slate-300">
                   Disco TM de Área (AoE) equipado
+                </span>
+              </label>
+
+              <label className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 cursor-pointer hover:bg-amber-500/15">
+                <input
+                  type="checkbox"
+                  checked={isVipBonus}
+                  onChange={(e) => setIsVipBonus(e.target.checked)}
+                  className="rounded accent-amber-500 h-4 w-4"
+                />
+                <span className="text-xs text-amber-300 font-semibold">
+                  VIP — +50% EXP
                 </span>
               </label>
 
@@ -1671,167 +1688,167 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                       isTop1 ? 'bg-amber-500/5' : ''
                     } ${item.isLevelLocked ? 'opacity-55' : ''}`}
                   >
-                      {/* Rank */}
-                      <td className="p-3 text-center">
-                        <span
-                          className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                            rankNumber === 1
-                              ? 'bg-amber-400 text-slate-950 shadow-sm'
-                              : rankNumber === 2
-                              ? 'bg-slate-300 text-slate-950'
-                              : rankNumber === 3
-                              ? 'bg-amber-700 text-amber-100'
-                              : 'text-slate-500'
-                          }`}
-                        >
-                          {rankNumber}
-                        </span>
-                      </td>
+                    {/* Rank */}
+                    <td className="p-3 text-center">
+                      <span
+                        className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                          rankNumber === 1
+                            ? 'bg-amber-400 text-slate-950 shadow-sm'
+                            : rankNumber === 2
+                            ? 'bg-slate-300 text-slate-950'
+                            : rankNumber === 3
+                            ? 'bg-amber-700 text-amber-100'
+                            : 'text-slate-500'
+                        }`}
+                      >
+                        {rankNumber}
+                      </span>
+                    </td>
 
-                      {/* Pokemon */}
-                      <td className="p-3 font-sans">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={getPokemonSprite(item.target.id)}
-                            alt={item.target.name}
-                            className="w-9 h-9 object-contain shrink-0"
-                          />
-                          <div>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-white">{item.target.name}</span>
-                              <span className="text-[10px] text-slate-500 font-mono">#{item.target.id}</span>
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
-                                Gen {getPokemonGeneration(item.target.id)}
+                    {/* Pokemon */}
+                    <td className="p-3 font-sans">
+                      <div className="flex items-center gap-2.5">
+                        <img
+                          src={getPokemonSprite(item.target.id)}
+                          alt={item.target.name}
+                          className="w-9 h-9 object-contain shrink-0"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-bold text-white">{item.target.name}</span>
+                            <span className="text-[10px] text-slate-500 font-mono">#{item.target.id}</span>
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">
+                              Gen {getPokemonGeneration(item.target.id)}
+                            </span>
+                            {item.target.id <= 251 ? (
+                              <span className="text-[8px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-bold" title="Implementado en servidor oficial">
+                                Servidor
                               </span>
-                              {item.target.id <= 251 ? (
-                                <span className="text-[8px] px-1 py-0.2 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-bold" title="Implementado en servidor oficial">
-                                  Servidor
-                                </span>
-                              ) : (
-                                <span className="text-[8px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono" title="Solo en wiki">
-                                  Wiki
-                                </span>
-                              )}
-                              {item.isLevelLocked && (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9px] font-bold font-mono">
-                                  <Lock className="h-2.5 w-2.5" />
-                                  <span>Bloqueado (&gt; Lv. {playerLevel})</span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span className={`text-[8px] px-1 py-0.2 rounded font-bold border ${getTypeBadgeStyle(item.target.type1)}`}>
-                                {item.target.type1}
+                            ) : (
+                              <span className="text-[8px] px-1 py-0.2 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono" title="Solo en wiki">
+                                Wiki
                               </span>
-                              {item.target.type2 && (
-                                <span className={`text-[8px] px-1 py-0.2 rounded font-bold border ${getTypeBadgeStyle(item.target.type2)}`}>
-                                  {item.target.type2}
-                                </span>
-                              )}
-                            </div>
+                            )}
+                            {item.isLevelLocked && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[9px] font-bold font-mono">
+                                <Lock className="h-2.5 w-2.5" />
+                                <span>Bloqueado (&gt; Lv. {playerLevel})</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className={`text-[8px] px-1 py-0.2 rounded font-bold border ${getTypeBadgeStyle(item.target.type1)}`}>
+                              {item.target.type1}
+                            </span>
+                            {item.target.type2 && (
+                              <span className={`text-[8px] px-1 py-0.2 rounded font-bold border ${getTypeBadgeStyle(item.target.type2)}`}>
+                                {item.target.type2}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Wild Hunt Level */}
-                      <td className="p-3 text-center">
-                        <span
-                          className={`font-bold px-2 py-0.5 rounded text-xs inline-flex items-center gap-1 ${
-                            item.isLevelLocked
-                              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                              : item.wildLevel <= 20
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : item.wildLevel <= 50
-                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                              : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                          }`}
-                        >
-                          {item.isLevelLocked && <Lock className="h-3 w-3" />}
-                          <span>Hunt {item.wildLevel}</span>
-                        </span>
-                      </td>
+                    {/* Wild Hunt Level */}
+                    <td className="p-3 text-center">
+                      <span
+                        className={`font-bold px-2 py-0.5 rounded text-xs inline-flex items-center gap-1 ${
+                          item.isLevelLocked
+                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            : item.wildLevel <= 20
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : item.wildLevel <= 50
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        }`}
+                      >
+                        {item.isLevelLocked && <Lock className="h-3 w-3" />}
+                        <span>Hunt {item.wildLevel}</span>
+                      </span>
+                    </td>
 
-                      {/* XP per Hour */}
-                      <td className="p-3 text-right">
-                        <span className="font-bold text-amber-400 text-sm">
-                          +{item.xpPerHour.toLocaleString()}
-                        </span>
-                        <span className="text-[10px] text-slate-500 block">
-                          ~{item.killsPerHour.toLocaleString()} kills/h
-                        </span>
-                      </td>
+                    {/* XP per Hour */}
+                    <td className="p-3 text-right">
+                      <span className="font-bold text-amber-400 text-sm">
+                        +{item.xpPerHour.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] text-slate-500 block">
+                        ~{item.killsPerHour.toLocaleString()} kills/h
+                      </span>
+                    </td>
 
-                      {/* Loot real ($/h) */}
-                      <td className="p-3 text-right font-mono">
-                        <span className="font-bold text-emerald-400">
-                          +${item.grossLootPerHour.toLocaleString()}
-                        </span>
-                      </td>
+                    {/* Loot real ($/h) */}
+                    <td className="p-3 text-right font-mono">
+                      <span className="font-bold text-emerald-400">
+                        +${item.grossLootPerHour.toLocaleString()}
+                      </span>
+                    </td>
 
-                      {/* Enemy Bulk + Defenses (Physical & Special) */}
-                      <td className="p-3 text-center font-mono">
-                        <div className="flex flex-col items-center gap-0.5">
-                          {/* Bulk efectivo principal */}
-                          <div className="text-[12px] font-bold text-white" title="Bulk Efectivo = HP × (Defensa relevante / 50). Mide mejor cuánto aguanta el enemigo">
-                            {item.effectiveBulk.toLocaleString()}
-                          </div>
-                          {/* HP + Defensas (calculadas con Growth 17 + Quality 1.20) */}
-                          <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                            <span title="HP máximo del salvaje (fórmula oficial ×5, Growth 17, Quality 1.20)">
-                              HP {item.wildMaxHp}
-                            </span>
-                            <span className="text-slate-600">·</span>
-                            <span
-                              className={!attackerStats.isSpecialMove ? 'text-amber-300 font-semibold' : ''}
-                              title="Defensa Física calculada (Growth 17, Quality 1.20)"
-                            >
-                              Def.F {item.wildDef}
-                            </span>
-                            <span className="text-slate-600">/</span>
-                            <span
-                              className={attackerStats.isSpecialMove ? 'text-cyan-300 font-semibold' : ''}
-                              title="Defensa Especial calculada (Growth 17, Quality 1.20)"
-                            >
-                              Def.Es {item.wildSpDef}
-                            </span>
-                          </div>
+                    {/* Enemy Bulk + Defenses (Physical & Special) */}
+                    <td className="p-3 text-center font-mono">
+                      <div className="flex flex-col items-center gap-0.5">
+                        {/* Bulk efectivo principal */}
+                        <div className="text-[12px] font-bold text-white" title="Bulk Efectivo = HP × (Defensa relevante / 50). Mide mejor cuánto aguanta el enemigo">
+                          {item.effectiveBulk.toLocaleString()}
+                        </div>
+                        {/* HP + Defensas (calculadas con Growth 17 + Quality 1.20) */}
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                          <span title="HP máximo del salvaje (fórmula oficial ×5, Growth 17, Quality 1.20)">
+                            HP {item.wildMaxHp}
+                          </span>
+                          <span className="text-slate-600">·</span>
                           <span
-                            className={`text-[9px] px-1.5 py-0.2 rounded font-sans border ${
-                              item.defenseTier === 'fragile'
-                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-bold'
-                                : item.defenseTier === 'medium'
-                                ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
-                                : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                            }`}
+                            className={!attackerStats.isSpecialMove ? 'text-amber-300 font-semibold' : ''}
+                            title="Defensa Física calculada (Growth 17, Quality 1.20)"
                           >
-                            {item.defenseTier === 'fragile' ? '🟢 Papel (Fácil)' : item.defenseTier === 'medium' ? '🟡 Media' : '🔴 Tanque'}
+                            Def.F {item.wildDef}
+                          </span>
+                          <span className="text-slate-600">/</span>
+                          <span
+                            className={attackerStats.isSpecialMove ? 'text-cyan-300 font-semibold' : ''}
+                            title="Defensa Especial calculada (Growth 17, Quality 1.20)"
+                          >
+                            Def.Es {item.wildSpDef}
                           </span>
                         </div>
-                      </td>
-
-                      {/* Elemental Multiplier */}
-                      <td className="p-3 text-center">
                         <span
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                            item.elementalMultiplier >= 2.0
-                              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                              : item.elementalMultiplier > 1.0
-                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-                              : item.elementalMultiplier === 1.0
-                              ? 'bg-slate-800 text-slate-400 border-slate-700'
-                              : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                          className={`text-[9px] px-1.5 py-0.2 rounded font-sans border ${
+                            item.defenseTier === 'fragile'
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 font-bold'
+                              : item.defenseTier === 'medium'
+                              ? 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                              : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
                           }`}
                         >
-                          {item.elementalMultiplier}x
+                          {item.defenseTier === 'fragile' ? '🟢 Papel (Fácil)' : item.defenseTier === 'medium' ? '🟡 Media' : '🔴 Tanque'}
                         </span>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* XP per Kill */}
-                      <td className="p-3 text-right text-slate-300">
-                        <span className="font-bold text-white">{item.xpPerKill.toLocaleString()}</span>
-                        <span className="text-[10px] text-slate-500 block">XP</span>
-                      </td>
-                    </tr>
+                    {/* Elemental Multiplier */}
+                    <td className="p-3 text-center">
+                      <span
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                          item.elementalMultiplier >= 2.0
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : item.elementalMultiplier > 1.0
+                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                            : item.elementalMultiplier === 1.0
+                            ? 'bg-slate-800 text-slate-400 border-slate-700'
+                            : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        }`}
+                      >
+                        {item.elementalMultiplier}x
+                      </span>
+                    </td>
+
+                    {/* XP per Kill */}
+                    <td className="p-3 text-right text-slate-300">
+                      <span className="font-bold text-white">{item.xpPerKill.toLocaleString()}</span>
+                      <span className="text-[10px] text-slate-500 block">XP</span>
+                    </td>
+                  </tr>
                 );
               })}
             </tbody>
