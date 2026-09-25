@@ -50193,8 +50193,7 @@ export const POKEMON_TIER_DATA: OfficialPokemon[] = [
         "max": 1
       }
     ]
-  }
-
+  },
   {
     "id": 890, "name": "Ancient Pupitar", "tier": "C", "serverTier": "C", "playerMetaTier": "C",
     "shortTag": "Hunt Lv.150 - Alta XP", "statScore": 410, "bulk": 210, "dps": 149, "qualityMult": 2.4, "hasAoE": false,
