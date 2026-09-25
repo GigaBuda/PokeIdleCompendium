@@ -94,6 +94,15 @@ const REAL_HUNT_LEVEL_XP_FACTORS: Record<number, number> = {
   150: 19080 / (13508 * 1.5)
 };
 
+const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
+const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
+// Una derrota real de Skarmory con el perfil de referencia se resuelve en 1 golpe.
+// Sirve como ancla para que la calibración real siga reaccionando a IV/Quality/velocidad.
+const REAL_HUNT_REFERENCE_COMBAT_SECONDS = 0.60;
+
+// Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
+const XP_CALIBRATION_FACTOR = 0.9953234328;
+
 // Calibración específica de Brave Venusaur con Typhlosion.
 // Sesión real: 80 derrotas en 21m01s = 228,39 derrotas/h.
 // El ciclo se ajusta restando el delta de combate de referencia (0,60s)
@@ -106,14 +115,6 @@ const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
 const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
   878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR)
 };
-const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
-const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
-// Una derrota real de Skarmory con el perfil de referencia se resuelve en 1 golpe.
-// Sirve como ancla para que la calibración real siga reaccionando a IV/Quality/velocidad.
-const REAL_HUNT_REFERENCE_COMBAT_SECONDS = 0.60;
-
-// Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
-const XP_CALIBRATION_FACTOR = 0.9953234328;
 
 /** Selector de Pokémon con búsqueda (igual que en la Calculadora de Poder) */
 const SpeciesSelect: React.FC<{ value: number; onChange: (id: number) => void }> = ({ value, onChange }) => {
