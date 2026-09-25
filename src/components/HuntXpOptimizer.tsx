@@ -472,6 +472,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(false); // Sin TM de área por defecto
   const [hasElementalTm, setHasElementalTm] = useState<boolean>(false);
   const [isVipBonus, setIsVipBonus] = useState<boolean>(true); // Cuenta VIP / Boost (+50% EXP como en sesión de 136k XP/h)
+  const [hasDoubleXpEvent, setHasDoubleXpEvent] = useState<boolean>(true); // Evento activo: XP x2 para Entrenador y Pokémon
 
   // Level Restriction Rule: Player level restricts hunts accessible
   const [restrictToPlayerLevel, setRestrictToPlayerLevel] = useState<boolean>(true);
@@ -724,7 +725,9 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         (target.type1.toUpperCase() === dailyTypeBonus ||
           target.type2?.toUpperCase() === dailyTypeBonus);
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1;
-      const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
+      const vipXpMult = isVipBonus ? 1.5 : 1;
+      const eventXpMult = hasDoubleXpEvent ? 2 : 1;
+      const baseXp = target.experience * vipXpMult * eventXpMult;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
       const huntLevelXpFactor = REAL_HUNT_LEVEL_XP_FACTORS[wildLevel] ?? 1;
       const speciesXpFactor = REAL_HUNT_SPECIES_XP_FACTORS[target.id] ?? 1;
@@ -840,7 +843,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   }, [
     attackerPokemon, playerLevel, playerTotalIv, playerQuality,
     clanRank, clanType, hasAoeBonus, hasElementalTm, elementalTmType,
-    isVipBonus, itemPriceMap, dailyTypeBonus, selectedMoveName,
+    isVipBonus, hasDoubleXpEvent, itemPriceMap, dailyTypeBonus, selectedMoveName,
     selectedMoveType, customMovePower, currentMove, attackerStats.pDef
   ]);
 
@@ -1397,6 +1400,17 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                 />
                 <span className="text-xs text-amber-300 font-semibold">
                   VIP — +50% EXP
+                </span>
+              </label>
+              <label className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 cursor-pointer hover:bg-yellow-500/15">
+                <input
+                  type="checkbox"
+                  checked={hasDoubleXpEvent}
+                  onChange={(e) => setHasDoubleXpEvent(e.target.checked)}
+                  className="rounded accent-yellow-500 h-4 w-4"
+                />
+                <span className="text-xs text-yellow-300 font-semibold">
+                  ⚡ Evento XP ×2 — Entrenador + Pokémon
                 </span>
               </label>
 
