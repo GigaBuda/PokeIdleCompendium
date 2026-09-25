@@ -8,12 +8,6 @@ echo   PokeIdle Wiki - comprobando actualizaciones
 echo ============================================
 echo.
 
-where git >nul 2>nul
-if errorlevel 1 (
-  echo [AVISO] Git no esta instalado. Se usara la version local.
-  goto :start_game
-)
-
 if exist "sincronizar-pokeidle.ps1" (
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0sincronizar-pokeidle.ps1"
 ) else (
