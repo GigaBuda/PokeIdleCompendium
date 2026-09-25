@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.2
+// @version      1.0.3
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -63,15 +63,43 @@
       hp: ["hp", "baseHp", "baseHP"],
       atk: ["atk", "attack", "baseAtk", "baseAttack"],
       def: ["def", "defense", "baseDef", "baseDefense"],
-      spa: ["spa", "specialAttack", "special-attack", "baseSpA", "baseSpecialAttack"],
-      spd: ["spd", "specialDefense", "special-defense", "baseSpD", "baseSpecialDefense"],
-      vel: ["vel", "speed", "baseVel", "baseSpeed"]
+      spa: ["spa", "spatk", "spAtk", "spAttack", "specialAttack", "special-attack", "special_attack", "baseSpA", "baseSpa", "baseSpAtk", "baseSpAttack", "baseSpecialAttack"],
+      spd: ["spd", "spdef", "spDef", "spDefense", "specialDefense", "special-defense", "special_defense", "baseSpD", "baseSpd", "baseSpDef", "baseSpDefense", "baseSpecialDefense"],
+      vel: ["vel", "spe", "speed", "baseVel", "baseSpe", "baseSpeed"]
     };
     for (const k of aliases[key] || []) {
       if (c[k] != null && Number.isFinite(Number(c[k]))) return Number(c[k]);
       if (c.stats && c.stats[k] != null && Number.isFinite(Number(c.stats[k]))) return Number(c.stats[k]);
       if (c.baseStats && c.baseStats[k] != null && Number.isFinite(Number(c.baseStats[k]))) return Number(c.baseStats[k]);
     }
+
+    // Algumas versões do creatures.json usam objetos aninhados com nomes completos.
+    const containers = [c.stats, c.baseStats, c.base_stats, c.attributes];
+    const fallbackNames = {
+      hp: ["hp", "HP"],
+      atk: ["atk", "attack", "Attack"],
+      def: ["def", "defense", "Defense"],
+      spa: ["spa", "spatk", "spAttack", "specialAttack", "Special Attack"],
+      spd: ["spd", "spdef", "spDefense", "specialDefense", "Special Defense"],
+      vel: ["vel", "spe", "speed", "Speed"]
+    };
+    for (const container of containers) {
+      if (!container || typeof container !== "object") continue;
+      for (const name of fallbackNames[key] || []) {
+        if (container[name] != null && Number.isFinite(Number(container[name]))) {
+          return Number(container[name]);
+        }
+      }
+    }
+
+    // Também aceita stats em array na ordem HP/Atk/Def/SpA/SpD/Vel.
+    if (Array.isArray(c.stats) || Array.isArray(c.baseStats)) {
+      const arr = Array.isArray(c.stats) ? c.stats : c.baseStats;
+      const index = { hp: 0, atk: 1, def: 2, spa: 3, spd: 4, vel: 5 }[key];
+      const value = arr?.[index]?.base ?? arr?.[index]?.value ?? arr?.[index];
+      if (Number.isFinite(Number(value))) return Number(value);
+    }
+
     return 0;
   }
 
@@ -222,15 +250,26 @@
     const moves = [];
     const rawMoves = c && (c.moves || c.attacks || c.skills || c.spells);
     if (Array.isArray(rawMoves)) {
-      rawMoves.slice(0, 12).forEach(m => {
-        if (typeof m === "string") moves.push({ name: m });
+      rawMoves.forEach(m => {
+        if (typeof m === "string") moves.push({ name: m, level: null });
         else if (m) moves.push({
           name: m.name || m.moveName || m.move || m.id || "?",
           power: m.power ?? m.basePower ?? m.damage ?? null,
           type: m.type || m.element || "",
-          level: m.learnLevel ?? m.level ?? m.lvl ?? null
+          level: m.learnLevel ?? m.learn_level ?? m.level ?? m.lvl ?? null
         });
       });
+
+      // Habilidades sempre da mais antiga para a mais recente.
+      // As que não têm nível conhecido ficam no final.
+      moves.sort((a, b) => {
+        const la = Number(a.level);
+        const lb = Number(b.level);
+        const va = Number.isFinite(la) ? la : Number.POSITIVE_INFINITY;
+        const vb = Number.isFinite(lb) ? lb : Number.POSITIVE_INFINITY;
+        return va - vb;
+      });
+      moves.splice(12);
     }
 
     const sprites = spriteUrls(c, p);
@@ -327,9 +366,9 @@
       </div>
       <div class="pil-section">Atributos e IV por stat <span class="pil-muted">(${data.pct.toFixed(1)}%)</span></div>
       <div class="pil-grid">${statCards}</div>
-      <div class="pil-section">Golpes</div>
+      <div class="pil-section">Habilidades</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.2</span></div>`;
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.3</span></div>`;
 
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
