@@ -187,7 +187,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [playerQuality, setPlayerQuality] = useState<number>(1.29); // Quality (calibrado a 1.29x)
   const [clanRank, setClanRank] = useState<number>(0); // Rank 0 (sin rango de clan)
   const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(true); // Multi-target bonus
-  const [isVipBonus, setIsVipBonus] = useState<boolean>(true); // Cuenta VIP / Boost (+50% EXP como en sesión de 136k XP/h)
+  const [isVipBonus, setIsVipBonus] = useState<boolean>(false); // Cuenta VIP: +50% EXP
   const [huntCadenceMode, setHuntCadenceMode] = useState<'real' | 'fast'>('real'); // 'real' = 5.5s delay cueva (~373/h), 'fast' = 1.3s teórico
 
   // Level Restriction Rule: Player level restricts hunts accessible
@@ -489,14 +489,14 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const timeToKillSeconds = +combatTimeSeconds.toFixed(1);
 
       // Official XP per kill:
-      // VIP / Boost: factor 1.4703 observado (Venomoth 2168 base → ~3188 XP/kill)
+      // VIP: +50% EXP (factor oficial 1.50). La sesión real contra Scizor confirma ~1.50x.
       // Tipo del Día: +20% XP si el objetivo es de ese tipo (type1 o type2)
       const hasDailyTypeBonus =
         dailyTypeBonus !== 'NONE' &&
         (target.type1.toUpperCase() === dailyTypeBonus ||
           target.type2?.toUpperCase() === dailyTypeBonus);
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1.0;
-      const baseXp = isVipBonus ? target.experience * 1.4703 : target.experience;
+      const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
       const xpPerHour = killsPerHour * xpPerKill;
 
@@ -1106,6 +1106,18 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                 />
                 <span className="text-xs text-slate-300">
                   Disco TM de Área (AoE) equipado
+                </span>
+              </label>
+
+              <label className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 cursor-pointer hover:bg-emerald-500/15">
+                <input
+                  type="checkbox"
+                  checked={isVipBonus}
+                  onChange={(e) => setIsVipBonus(e.target.checked)}
+                  className="rounded accent-emerald-500 h-4 w-4"
+                />
+                <span className="text-xs text-emerald-300 font-semibold">
+                  VIP (+50% EXP)
                 </span>
               </label>
 
