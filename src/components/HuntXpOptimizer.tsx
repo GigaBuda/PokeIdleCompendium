@@ -118,7 +118,12 @@ const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
   // Ancient Pinsir: Hunt Analyzer real = 288 derrotados en 40m31s = 426,49 kills/h.
   // Con Typhlosion IV129 / Q1.29 / Lv150, el combate calculado es ~0,464s;
   // se conserva el ciclo real y se deja que IV/Quality/Speed sigan ajustándolo.
-  907: 8.5767215792
+  907: 8.5767215792,
+  // Ancient Meganium: Hunt Analyzer real = 81 derrotados en 18m28s = 263,17 kills/h.
+  // Perfil de referencia: Typhlosion Lv150 / IV129 / Q1.29.
+  // El ciclo observado (13,679s) se separa del tiempo de combate calculado (~0,690s)
+  // para mantener la respuesta a IV/Quality/Speed alrededor del punto real.
+  903: 13.5888162672
 };
 
 // XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
@@ -127,7 +132,10 @@ const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
   // Ancient Pinsir: XP Analyzer = 9.560.287 / 288 = 33.195,44 XP/kill.
   // Recompensa visible: 13.508 base + 6.754 VIP + 13.508 evento = 33.770.
   // Factor empírico de sesión para cuadrar XP/h real.
-  907: 0.9876047109
+  907: 0.9876047109,
+  // Ancient Meganium: 2.640.814 XP / 81 derrotas = 32.602,64 XP/kill.
+  // Frente a 13.508 base × 1,5 VIP × 2 evento.
+  903: 0.8045267490
 };
 
 const POKEGRID_TM_POWER = 300;
