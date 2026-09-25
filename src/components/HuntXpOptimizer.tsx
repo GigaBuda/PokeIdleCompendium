@@ -496,21 +496,34 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
       // Modelo continuo de tiempo de hunt:
       // - Una sesión real fija el punto de referencia de segundos por derrota.
-      // - El tiempo de combate NO se ignora: ajusta esa referencia según el
-      //   daño/velocidad del atacante. Así IV y Quality cambian kills/h cuando
-      //   cambian los golpes necesarios o la cadencia de ataque.
+      // - IV/Quality modifican el daño y, por tanto, el tiempo de combate.
+      // - El Disco TM de Área hace que los golpes normales salpiquen a todos
+      //   los salvajes del área. El optimizador histórico lo modelaba como
+      //   ~20% menos de ciclo en 1-2 golpes y ~15% menos desde 3 golpes;
+      //   mantenemos ese efecto para que el checkbox vuelva a afectar la XP/h.
       const calibratedCycleSeconds = REAL_HUNT_CALIBRATIONS[target.id];
       const fallbackCycleSeconds = Math.max(
         REAL_HUNT_REFERENCE_CYCLE_SECONDS,
         REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
       );
-      const totalCycleSeconds = +(
-        calibratedCycleSeconds !== undefined
-          ? calibratedCycleSeconds + (combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS)
-          : fallbackCycleSeconds
-      ).toFixed(2);
-      const killsPerHour = Math.round(3600 / totalCycleSeconds);
-      const killsPerMinute = +(60 / totalCycleSeconds).toFixed(1);
+      const aoeCycleMultiplier = hasAoeBonus
+        ? (hitsToKill <= 2 ? 0.80 : 14 / 16.5)
+        : 1.0;
+      const combatDeltaSeconds = combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS;
+      const totalCycleSeconds = Math.max(
+        0.6,
+        +(
+          calibratedCycleSeconds !== undefined
+            ? calibratedCycleSeconds * aoeCycleMultiplier + combatDeltaSeconds
+            : fallbackCycleSeconds * aoeCycleMultiplier
+        ).toFixed(3)
+      );
+
+      // No redondeamos la tasa interna: el redondeo solo es visual. De este modo
+      // pequeños cambios de IV/Quality siguen llegando hasta la XP/h.
+      const killsPerHourExact = 3600 / totalCycleSeconds;
+      const killsPerHour = Math.round(killsPerHourExact);
+      const killsPerMinute = +(killsPerHourExact / 60).toFixed(1);
       const timeToKillSeconds = +(Math.max(0.6, totalCycleSeconds - REAL_HUNT_REFERENCE_WALK_SECONDS)).toFixed(1);
 
       // Official XP per kill + calibration from real Hunt Analyzer session:
@@ -523,7 +536,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1.0;
       const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
-      const xpPerHour = Math.round(killsPerHour * xpPerKill * XP_CALIBRATION_FACTOR);
+      const xpPerHourExact = killsPerHourExact * xpPerKill * XP_CALIBRATION_FACTOR;
+      const xpPerHour = Math.round(xpPerHourExact);
 
       // Enemy frailty classification using EFFECTIVE BULK (HP × Defensa)
       // Umbrales calibrados: bulk bajo = fácil de matar, bulk alto = tanque real
@@ -634,8 +648,10 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         elementalMultiplier,
         killsPerHour,
         killsPerMinute,
+        killsPerHourExact,
         xpPerKill,
         xpPerHour,
+        xpPerHourExact,
         wildDamagePerHit,
         totalDamageTakenPerKill,
         potionsPer100Kills,
