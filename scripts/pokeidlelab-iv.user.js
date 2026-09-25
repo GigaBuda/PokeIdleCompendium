@@ -131,6 +131,26 @@
     };
   }
 
+
+  function spriteUrls(creature, pokemon) {
+    const rawId = Number(creature?.id ?? creature?.dexId ?? creature?.nationalId ?? 0);
+    if (!rawId) return { anim: pokemon?.spriteSrc || "", still: pokemon?.spriteSrc || "" };
+    const id = rawId >= 13000 && rawId < 14000 ? rawId - 13000 : rawId;
+    const shiny = /shiny/i.test(pokemon?.name || "") || Number(pokemon?.quality) > 1.8;
+    const folder = shiny ? "shiny/" : "";
+    const base = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+    return {
+      anim: `${base}/versions/generation-v/black-white/animated/${folder}${id}.gif`,
+      still: `${base}/${folder}${id}.png`
+    };
+  }
+
+  function typeName(creature) {
+    const value = creature?.type ?? creature?.types ?? creature?.element ?? "";
+    if (Array.isArray(value)) return String(value[0] || "");
+    return String(value || "").split(/[\\/,]/)[0].trim();
+  }
+
   function calculate(p) {
     const c = findCreature(p.name);
     const bases = {};
@@ -164,7 +184,11 @@
       });
     }
 
-    return { ...p, creature: c, bases, stats, ivs, total, pct, classification, classColor, power: Math.round(power), moves };
+    const sprites = spriteUrls(c, p);
+    return {
+      ...p, creature: c, bases, stats, ivs, total, pct, classification, classColor,
+      power: Math.round(power), moves, type: typeName(c), spriteAnim: sprites.anim, spriteStill: sprites.still
+    };
   }
 
   function createPanel() {
@@ -179,6 +203,7 @@
       .pil-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pil-stat{background:#0b1019;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px}.pil-stat-name{font-weight:900;color:var(--c)}.pil-iv{font-size:17px;font-weight:900;margin:3px 0}.pil-input{width:100%;background:#121a27;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px}.pil-base{font-size:9px;color:#8392a7;margin-top:4px}
       .pil-section{font-size:9px;color:#8392a7;text-transform:uppercase;letter-spacing:1px;margin:13px 0 7px}.pil-move{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;border-radius:8px;background:#0b1019;border:1px solid rgba(255,255,255,.06);margin-bottom:5px}.pil-type{font-size:9px;padding:2px 6px;border-radius:8px;background:#283449;color:#fff;margin-right:6px}.pil-muted{color:#8392a7}
     `;
+    style.textContent += "\n      #pokeidlelab-iv-panel{width:540px;top:48px;background:linear-gradient(180deg,#0d141f 0%,#09101a 100%);box-shadow:0 24px 70px rgba(0,0,0,.65),0 0 0 1px rgba(70,150,255,.04)}\n      #pokeidlelab-iv-panel .pil-hero{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;min-height:150px}\n      #pokeidlelab-iv-panel .pil-sprite-wrap{height:150px;border-radius:14px;background:radial-gradient(circle at 50% 55%,rgba(255,65,55,.20),transparent 55%),linear-gradient(180deg,#111a28,#09101a);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}\n      #pokeidlelab-iv-panel .pil-sprite-wrap:after{content:\"\";position:absolute;width:112px;height:20px;bottom:18px;border-radius:50%;background:radial-gradient(ellipse,rgba(255,72,72,.65),rgba(255,72,72,0) 70%);filter:blur(5px)}\n      #pokeidlelab-iv-panel .pil-sprite{position:relative;z-index:2;width:128px;height:128px;object-fit:contain;filter:drop-shadow(0 8px 10px rgba(0,0,0,.55));animation:pil-float 2.1s ease-in-out infinite}\n      #pokeidlelab-iv-panel .pil-name-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}\n      #pokeidlelab-iv-panel .pil-name{font-size:23px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n      #pokeidlelab-iv-panel .pil-id{margin-left:auto;color:#7e8ba0;font-size:12px}\n      #pokeidlelab-iv-panel .pil-type-badge{display:inline-flex;padding:4px 12px;border-radius:999px;background:#ef3f39;color:#fff;font-size:10px;font-weight:900;margin-bottom:9px}\n      #pokeidlelab-iv-panel .pil-stat-head{display:flex;justify-content:space-between;align-items:center}\n      #pokeidlelab-iv-panel .pil-bar{height:6px;border-radius:999px;background:#202a38;margin:6px 0 7px;overflow:hidden}\n      #pokeidlelab-iv-panel .pil-bar>i{display:block;height:100%;width:var(--w);background:var(--c);border-radius:inherit}\n      #pokeidlelab-iv-panel .pil-footer{display:flex;justify-content:space-between;color:#8391a5;font-size:10px;padding:8px 2px 1px}\n      #pokeidlelab-iv-panel .pil-footer b{color:#e6ebf1;font-size:12px}\n      @keyframes pil-float{0%,100%{transform:translateY(2px)}50%{transform:translateY(-7px)}}\n";
     document.head.appendChild(style);
 
     const panel = document.createElement("div");
@@ -219,7 +244,8 @@
 
     const statCards = Object.keys(CFG.statLabels).map(k => `
       <div class="pil-stat" style="--c:${CFG.colors[k]}">
-        <div class="pil-stat-name">${CFG.statLabels[k]} <span class="pil-muted">${data.ivs[k].toFixed(1)}/32</span></div>
+        <div class="pil-stat-head"><span class="pil-stat-name">${CFG.statLabels[k]}</span><span class="pil-iv">${data.ivs[k].toFixed(1)}/32</span></div>
+        <div class="pil-bar"><i style="--w:${Math.max(0, Math.min(100, data.ivs[k] / 32 * 100))}%"></i></div>
         <input class="pil-input" data-stat="${k}" type="number" value="${data.stats[k] || ""}" />
         <div class="pil-base">base ${data.bases[k] || "?"}</div>
       </div>`).join("");
@@ -228,19 +254,30 @@
       <div class="pil-move"><div><span class="pil-type">${esc(m.type || "—")}</span><b>${esc(m.name)}</b></div><div><span class="pil-muted">${m.level != null ? "Nv " + m.level : ""}</span> <b>${m.power != null ? m.power : "—"}</b></div></div>`).join("") : '<div class="pil-muted">No se encontraron golpes en creatures.json.</div>';
 
     content.innerHTML = `
-      <div class="pil-top">
-        <div class="pil-box"><div class="pil-label">Pokémon</div><div class="pil-value" style="font-size:14px">${esc(data.name)}</div></div>
-        <div class="pil-box"><div class="pil-label">Nivel</div><div class="pil-value">${data.level}</div></div>
-        <div class="pil-box"><div class="pil-label">Calidad</div><div class="pil-value">${data.quality.toFixed(2)}</div></div>
+      <div class="pil-hero">
+        <div class="pil-sprite-wrap">
+          <img class="pil-sprite" src="${esc(data.spriteAnim || data.spriteSrc || "")}" data-fallback="${esc(data.spriteStill || data.spriteSrc || "")}" alt="${esc(data.name)}" onerror="if(this.dataset.fallback && this.src!==this.dataset.fallback){this.src=this.dataset.fallback}else{this.style.display='none'}">
+        </div>
+        <div>
+          <div class="pil-name-row"><div class="pil-name">${esc(data.name)}</div><div class="pil-id">${data.creature?.id ? "#" + String(data.creature.id).padStart(4,"0") : ""}</div></div>
+          <div class="pil-type-badge">${esc((data.type || "POKÉMON").toUpperCase())}</div>
+          <div class="pil-top">
+            <div class="pil-box"><div class="pil-label">Nivel</div><div class="pil-value">${data.level}</div></div>
+            <div class="pil-box"><div class="pil-label">Calidad</div><div class="pil-value">${data.quality.toFixed(2).replace(".", ",")}</div></div>
+            <div class="pil-box"><div class="pil-label">IV Total</div><div class="pil-value" style="color:#32e2dc">${data.total}<span class="pil-muted">/192</span></div></div>
+          </div>
+          <div class="pil-box" style="margin-top:7px"><div class="pil-label">Poder estimado</div><div class="pil-value" style="color:#ffc52f">${data.power}</div></div>
+        </div>
       </div>
       <div class="pil-rating">
         <div class="pil-ring" style="--p:${data.pct};--c:${data.classColor}"><span>${Math.round(data.pct)}%</span></div>
         <div><div style="font-size:18px;font-weight:900;color:${data.classColor}">${data.classification}</div><div class="pil-muted">${data.total} / 192 · Poder ${data.power}</div></div>
       </div>
-      <div class="pil-section">Atributos e IV</div>
+      <div class="pil-section">Atributos e IV por stat <span class="pil-muted">(${data.pct.toFixed(1)}%)</span></div>
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Golpes</div>
-      <div>${moves}</div>`;
+      <div>${moves}</div>
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.0</span></div>`;
 
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
@@ -305,6 +342,9 @@
 
         const parsed = parseTooltip(text);
         if (!parsed) continue;
+
+        const img = tip.querySelector("img");
+        parsed.spriteSrc = img?.currentSrc || img?.src || "";
 
         found = true;
         if (tip !== lastPokemonTooltip || text !== lastText) {
