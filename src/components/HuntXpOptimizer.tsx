@@ -1010,7 +1010,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
               type="range"
               min="0.8"
               max="4.5"
-              step="0.05"
+              step="0.01"
               value={playerQuality}
               onChange={(e) => setPlayerQuality(Number(e.target.value))}
               className="w-full accent-amber-500"
