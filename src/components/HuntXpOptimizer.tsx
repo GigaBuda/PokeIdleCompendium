@@ -114,12 +114,20 @@ const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
   // Furious Skarmory: sesión real ~6,0M XP/h con VIP, Typhlosion IV129/Q1.29,
   // sin TM de área. La base se normaliza para que el delta de combate siga
   // reaccionando a IV/Quality/Speed sin perder el ancla real.
-  888: 11.6694872086
+  888: 11.6694872086,
+  // Ancient Pinsir: Hunt Analyzer real = 288 derrotados en 40m31s = 426,49 kills/h.
+  // Con Typhlosion IV129 / Q1.29 / Lv150, el combate calculado es ~0,464s;
+  // se conserva el ciclo real y se deja que IV/Quality/Speed sigan ajustándolo.
+  907: 8.5767215792
 };
 
 // XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
 const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
-  878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR)
+  878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR),
+  // Ancient Pinsir: XP Analyzer = 9.560.287 / 288 = 33.195,44 XP/kill.
+  // Recompensa visible: 13.508 base + 6.754 VIP + 13.508 evento = 33.770.
+  // Factor empírico de sesión para cuadrar XP/h real.
+  907: 0.9876047109
 };
 
 const POKEGRID_TM_POWER = 300;
