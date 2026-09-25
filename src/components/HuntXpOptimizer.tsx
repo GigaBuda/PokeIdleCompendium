@@ -447,14 +447,11 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   // 1. Simulate combat performance for ALL targets in the database
   const allSimulatedTargets = useMemo(() => {
     const {
-      attackerOffenseStat,
-      isSpecialMove,
       clanBonusMultiplier,
       attackIntervalSeconds,
-      pDef,
-      moveType,
-      movePower,
-      stabMultiplier
+      pAtk,
+      pSpAtk,
+      pDef
     } = attackerStats;
 
     return POKEMON_TIER_DATA.map((target) => {
@@ -477,25 +474,82 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const wildDef = calculateStat(target.baseDef, WILD_GROWTH, wildLevel, WILD_QUALITY);
       const wildSpDef = calculateStat(target.baseSpDef, WILD_GROWTH, wildLevel, WILD_QUALITY);
 
-      // Target defense that receives the attacker's hit
-      const targetDefense = isSpecialMove ? wildSpDef : wildDef;
+      // El juego elige el mejor movimiento disponible PARA CADA objetivo.
+      // Por eso no podemos usar un único ataque global para toda la tabla:
+      // contra un objetivo con Def alta puede convenir un ataque especial,
+      // mientras que contra otro con SpDef alta puede convenir uno físico.
+      // También se tiene en cuenta STAB y efectividad de tipos.
+      const learnedMoves = availableAttacks.filter(
+        (move) => move.learnLevel <= playerLevel && move.power > 0 && !move.tm
+      );
+      const candidateMoves = learnedMoves.length > 0
+        ? learnedMoves
+        : availableAttacks.filter((move) => move.power > 0 && !move.tm);
+
+      const bestMove = candidateMoves.reduce((best, move) => {
+        const moveIsSpecial = SPECIAL_TYPES.includes(move.type.toUpperCase());
+        const moveDefense = moveIsSpecial ? wildSpDef : wildDef;
+        const moveOffense = moveIsSpecial ? pSpAtk : pAtk;
+        const moveHasStab =
+          move.type.toUpperCase() === attackerPokemon.type1.toUpperCase() ||
+          (attackerPokemon.type2
+            ? move.type.toUpperCase() === attackerPokemon.type2.toUpperCase()
+            : false);
+        const moveStab = moveHasStab ? 1.5 : 1.0;
+        const moveEffectiveness = getAmplifiedMultiplier(
+          move.type,
+          target.type1,
+          target.type2
+        );
+        const moveRawDamage =
+          ((2 * playerLevel / 5 + 2) * move.power *
+            (moveOffense / Math.max(1, moveDefense))) / 50 + 2;
+        const moveContinuousDamage = Math.max(
+          1,
+          moveRawDamage * moveEffectiveness * moveStab
+        );
+
+        if (!best || moveContinuousDamage > best.continuousDamage) {
+          return {
+            move,
+            targetDefense: moveDefense,
+            elementalMultiplier: moveEffectiveness,
+            stabMultiplier: moveStab,
+            continuousDamage: moveContinuousDamage
+          };
+        }
+        return best;
+      }, null as {
+        move: typeof availableAttacks[number];
+        targetDefense: number;
+        elementalMultiplier: number;
+        stabMultiplier: number;
+        continuousDamage: number;
+      } | null);
+
+      const fallbackMove = currentMove;
+      const selectedMove = bestMove || {
+        move: fallbackMove,
+        targetDefense: SPECIAL_TYPES.includes(fallbackMove.type.toUpperCase()) ? wildSpDef : wildDef,
+        elementalMultiplier: getAmplifiedMultiplier(fallbackMove.type, target.type1, target.type2),
+        stabMultiplier:
+          fallbackMove.type.toUpperCase() === attackerPokemon.type1.toUpperCase() ||
+          (attackerPokemon.type2
+            ? fallbackMove.type.toUpperCase() === attackerPokemon.type2.toUpperCase()
+            : false)
+            ? 1.5
+            : 1.0,
+        continuousDamage: 1
+      };
+
+      const targetDefense = selectedMove.targetDefense;
+      const elementalMultiplier = selectedMove.elementalMultiplier;
+      const stabMultiplier = selectedMove.stabMultiplier;
+      const continuousDamagePerHit = selectedMove.continuousDamage;
+      const finalDamagePerHit = Math.max(1, Math.round(continuousDamagePerHit));
 
       // === BULK EFECTIVO (HP × Defensa relevante) ===
-      // Un Pokémon con mucha Def pero poco HP puede morir antes que uno equilibrado.
-      // Normalizamos dividiendo por 50 para que la escala sea legible.
       const effectiveBulk = Math.round(wildMaxHp * (targetDefense / 50));
-
-      // Elemental multiplier (amplified official mechanic)
-      const elementalMultiplier = getAmplifiedMultiplier(
-        moveType,
-        target.type1,
-        target.type2
-      );
-
-      // Real Player Damage against target (clan bonus ya aplicado en attackerOffenseStat / pDef)
-      const rawDamage = ((2 * playerLevel / 5 + 2) * movePower * (attackerOffenseStat / Math.max(1, targetDefense))) / 50 + 2;
-      const continuousDamagePerHit = Math.max(1, rawDamage * elementalMultiplier * stabMultiplier);
-      const finalDamagePerHit = Math.max(1, Math.round(continuousDamagePerHit));
 
       // Los golpes siguen disponibles como dato interno de daño, pero YA NO
       // deciden la cadencia mediante reglas 1/2/3+. La velocidad de la hunt
@@ -657,6 +711,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         wildSpDef,
         targetDefense,
         effectiveBulk, // HP × Defensa relevante (métrica más precisa de "aguante")
+        bestMove: selectedMove.move.name,
         defenseTier,
         defenseLabel,
         finalDamagePerHit,
