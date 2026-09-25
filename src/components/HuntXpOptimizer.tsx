@@ -82,6 +82,9 @@ const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
 };
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
+// Una derrota real de Skarmory con el perfil de referencia se resuelve en 1 golpe.
+// Sirve como ancla para que la calibración real siga reaccionando a IV/Quality/velocidad.
+const REAL_HUNT_REFERENCE_COMBAT_SECONDS = 0.60;
 
 // Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
 const XP_CALIBRATION_FACTOR = 0.9953234328;
@@ -487,15 +490,20 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const combatTimeSeconds = +(hitsToKill * attackIntervalSeconds).toFixed(2);
 
       // Modelo continuo de tiempo de hunt:
-      // - Si tenemos una sesión real del objetivo, usamos directamente sus segundos/derrota.
-      // - Si no, usamos una base real (~414 kills/h) y añadimos el tiempo de combate
-      //   de forma continua, sin saltos por 1, 2 o 3+ golpes.
+      // - Una sesión real fija el punto de referencia de segundos por derrota.
+      // - El tiempo de combate NO se ignora: ajusta esa referencia según el
+      //   daño/velocidad del atacante. Así IV y Quality cambian kills/h cuando
+      //   cambian los golpes necesarios o la cadencia de ataque.
       const calibratedCycleSeconds = REAL_HUNT_CALIBRATIONS[target.id];
       const fallbackCycleSeconds = Math.max(
         REAL_HUNT_REFERENCE_CYCLE_SECONDS,
         REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
       );
-      const totalCycleSeconds = +(calibratedCycleSeconds ?? fallbackCycleSeconds).toFixed(2);
+      const totalCycleSeconds = +(
+        calibratedCycleSeconds !== undefined
+          ? calibratedCycleSeconds + (combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS)
+          : fallbackCycleSeconds
+      ).toFixed(2);
       const killsPerHour = Math.round(3600 / totalCycleSeconds);
       const killsPerMinute = +(60 / totalCycleSeconds).toFixed(1);
       const timeToKillSeconds = +(Math.max(0.6, totalCycleSeconds - REAL_HUNT_REFERENCE_WALK_SECONDS)).toFixed(1);
