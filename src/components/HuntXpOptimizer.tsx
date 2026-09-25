@@ -370,8 +370,6 @@ const SpeciesSelect: React.FC<{ value: number; onChange: (id: number) => void }>
   };
 
   return (
-      <HuntCalibrationPanel />
-
     <div ref={wrapRef} className="relative">
       <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
       <input
@@ -1067,6 +1065,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
   return (
     <div className="space-y-6">
+      <HuntCalibrationPanel />
       {/* Top Section: Attacker Setup & Hero #1 Target */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Attacker (Player) Controls - 7 cols */}
