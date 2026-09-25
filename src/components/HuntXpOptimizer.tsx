@@ -88,10 +88,12 @@ const REAL_HUNT_LEVEL_CALIBRATIONS: Record<number, number> = {
   150: 3600 / 295
 };
 
-// XP observado en Hunt Lv.150 con VIP: 915.840 XP / 48 derrotas = 19.080 XP/derrota.
-// El factor corrige la diferencia entre experience de la base de datos y XP real de la sesión.
+// Hunt Lv.150: la recompensa visible del juego confirma la fórmula directa.
+// Base 13.508 + VIP 6.754 (+50%) + Evento 13.508 (+100%) = 33.770 XP/derrota.
+// No aplicamos un factor adicional de XP al Hunt 150: los multiplicadores visibles
+// ya determinan la XP/kill real y el evento x2 debe escalarla exactamente.
 const REAL_HUNT_LEVEL_XP_FACTORS: Record<number, number> = {
-  150: 19080 / (13508 * 1.5)
+  150: 1
 };
 
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
