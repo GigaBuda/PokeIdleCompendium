@@ -614,7 +614,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [searchTarget, setSearchTarget] = useState<string>('');
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('ALL');
 
-  // Tipo del Día: +20% XP y +20% loot en Pokémon de ese tipo (cambia cada 24h)
+  // Tipo del Día: DESACTIVADO por defecto. Solo se aplica cuando el usuario
+  // selecciona manualmente un tipo en el filtro. Nunca se activa automáticamente.
   const [dailyTypeBonus, setDailyTypeBonus] = useState<string>('NONE');
 
   // Sorting: Field & Direction (Ascending / Descending)
@@ -730,8 +731,11 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
       const wildLevel = target.huntLevel || 50;
       const isLevelLocked = wildLevel > playerLevel;
+      // El bonus de Tipo del Día solo existe si el filtro manual está seleccionado.
+      // 'NONE' = 1.0x siempre, incluso durante calibraciones del Hunt Analyzer.
+      const manuallySelectedDailyType = dailyTypeBonus !== 'NONE';
       const hasDailyTypeBonus =
-        dailyTypeBonus !== 'NONE' &&
+        manuallySelectedDailyType &&
         (target.type1.toUpperCase() === dailyTypeBonus ||
           target.type2?.toUpperCase() === dailyTypeBonus);
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1;
@@ -1615,7 +1619,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
               <span>Tipo del Día:</span>
             </span>
             <span className="text-[11px] text-slate-400 hidden sm:inline">
-              +20% XP y +20% loot en Pokémon de ese tipo (cambia cada 24h)
+              +20% XP y +20% loot — solo se aplica al tipo que selecciones manualmente
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
