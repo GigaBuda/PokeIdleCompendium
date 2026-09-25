@@ -68,6 +68,21 @@ export type SortField =
 export type SortDirection = 'asc' | 'desc';
 
 const normalize = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+/**
+ * Cadencia real de Hunt Analyzer.
+ * No usamos tramos 1/2/3+ golpes para decidir la velocidad de la hunt.
+ * Las sesiones reales aportan segundos por derrota; las muestras conocidas
+ * se conservan como referencias y el resto usa un modelo continuo calibrado.
+ */
+const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
+  49: 3600 / 425,     // Venomoth: ~425 derrotas/h
+  163: 3600 / 186,    // Xatu: ~186 derrotas/h
+  205: 3600 / 538,    // Forretress: ~538 derrotas/h
+  227: 3600 / (4100 / (9 + 55 / 60)) // Skarmory: 4.100 derrotas en 9h55m
+};
+const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
+const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
+const XP_CALIBRATION_FACTOR = 0.9953234328;
 
 // Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
 const XP_CALIBRATION_FACTOR = 0.9953234328;
@@ -191,7 +206,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [clanRank, setClanRank] = useState<number>(0); // Rank 0 (sin rango de clan)
   const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(true); // Multi-target bonus
   const [isVipBonus, setIsVipBonus] = useState<boolean>(true); // Cuenta VIP / Boost (+50% EXP como en sesión de 136k XP/h)
-  const [huntCadenceMode, setHuntCadenceMode] = useState<'real' | 'fast'>('real'); // 'real' = 5.5s delay cueva (~373/h), 'fast' = 1.3s teórico
 
   // Level Restriction Rule: Player level restricts hunts accessible
   const [restrictToPlayerLevel, setRestrictToPlayerLevel] = useState<boolean>(true);
@@ -467,32 +481,25 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const rawDamage = ((2 * playerLevel / 5 + 2) * movePower * (attackerOffenseStat / Math.max(1, targetDefense))) / 50 + 2;
       const finalDamagePerHit = Math.max(1, Math.round(rawDamage * elementalMultiplier * stabMultiplier));
 
-      // Hits necesarios (discreto)
+      // Los golpes siguen disponibles como dato interno de daño, pero YA NO
+      // deciden la cadencia mediante reglas 1/2/3+. La velocidad de la hunt
+      // parte de tiempos reales del Hunt Analyzer (derrotas / duración).
       const hitsToKill = Math.max(1, Math.ceil(wildMaxHp / finalDamagePerHit));
       const combatTimeSeconds = +(hitsToKill * attackIntervalSeconds).toFixed(2);
 
-      // Ciclo calibrado con 2 sesiones reales del Hunt Analyzer:
-      // - Forretress one-shot (Typhlosion lv85): ~538 kills/h → ciclo ≈ 6.7s
-      // - Xatu daño bajo 2+ golpes:              ~186 kills/h → ciclo ≈ 19.4s
-      //
-      // baseDelay bajo en one-shot; sube con más golpes (más tiempo muerto).
-      const isFastClear = hitsToKill === 1;
-      let baseDelay: number;
-      if (huntCadenceMode === 'fast') {
-        baseDelay = isFastClear ? 1.8 : 3.5;
-      } else if (isFastClear) {
-        baseDelay = hasAoeBonus ? 5.2 : 6.5; // ~500-550 kills/h one-shot
-      } else if (hitsToKill === 2) {
-        baseDelay = hasAoeBonus ? 10.0 : 12.5;
-      } else {
-        // 3+ golpes (caso Xatu débil)
-        baseDelay = hasAoeBonus ? 14.0 : 16.5;
-      }
-      const walkDelaySeconds = baseDelay;
-      const totalCycleSeconds = Math.max(3.5, +(combatTimeSeconds + walkDelaySeconds).toFixed(2));
+      // Modelo continuo de tiempo de hunt:
+      // - Si tenemos una sesión real del objetivo, usamos directamente sus segundos/derrota.
+      // - Si no, usamos una base real (~414 kills/h) y añadimos el tiempo de combate
+      //   de forma continua, sin saltos por 1, 2 o 3+ golpes.
+      const calibratedCycleSeconds = REAL_HUNT_CALIBRATIONS[target.id];
+      const fallbackCycleSeconds = Math.max(
+        REAL_HUNT_REFERENCE_CYCLE_SECONDS,
+        REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
+      );
+      const totalCycleSeconds = +(calibratedCycleSeconds ?? fallbackCycleSeconds).toFixed(2);
       const killsPerHour = Math.round(3600 / totalCycleSeconds);
       const killsPerMinute = +(60 / totalCycleSeconds).toFixed(1);
-      const timeToKillSeconds = +combatTimeSeconds.toFixed(1);
+      const timeToKillSeconds = +(Math.max(0.6, totalCycleSeconds - REAL_HUNT_REFERENCE_WALK_SECONDS)).toFixed(1);
 
       // Official XP per kill + calibration from real Hunt Analyzer session:
       // VIP / Boost: +50% EXP
@@ -635,7 +642,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     attackerPokemon,
     playerLevel,
     hasAoeBonus,
-    huntCadenceMode,
     isVipBonus,
     itemPriceMap,
     dailyTypeBonus
