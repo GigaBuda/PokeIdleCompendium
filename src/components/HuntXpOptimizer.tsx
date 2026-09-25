@@ -471,7 +471,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [clanType, setClanType] = useState<string>('NONE');
   const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(false); // Sin TM de área por defecto
   const [hasElementalTm, setHasElementalTm] = useState<boolean>(false);
-  const [elementalTmType, setElementalTmType] = useState<string>(attackerPokemon.type1);
   const [isVipBonus, setIsVipBonus] = useState<boolean>(true); // Cuenta VIP / Boost (+50% EXP como en sesión de 136k XP/h)
 
   // Level Restriction Rule: Player level restricts hunts accessible
@@ -506,6 +505,9 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [selectedMoveName, setSelectedMoveName] = useState<string>('');
   const [customMovePower, setCustomMovePower] = useState<number>(50);
   const [selectedMoveType, setSelectedMoveType] = useState<string>(attackerPokemon.type1);
+  const [elementalTmType, setElementalTmType] = useState<string>(
+    initialPokemon?.type1 || attackerPokemon.type1
+  );
 
   // Available attacks learned by attacker
   const availableAttacks = useMemo(() => {
