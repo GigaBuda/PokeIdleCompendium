@@ -492,11 +492,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       );
       const finalDamagePerHit = Math.max(1, Math.round(continuousDamagePerHit));
 
-      const elementalMultiplier = selectedMove.elementalMultiplier;
-      const stabMultiplier = selectedMove.stabMultiplier;
-      const continuousDamagePerHit = selectedMove.continuousDamage;
-      const finalDamagePerHit = Math.max(1, Math.round(continuousDamagePerHit));
-
       // === BULK EFECTIVO (HP × Defensa relevante) ===
       const effectiveBulk = Math.round(wildMaxHp * (targetDefense / 50));
 
