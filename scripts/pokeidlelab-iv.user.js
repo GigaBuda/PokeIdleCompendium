@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.0
+// @version      1.0.1
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -277,7 +277,7 @@
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Golpes</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.0</span></div>`;
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.1</span></div>`;
 
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
