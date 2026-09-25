@@ -451,7 +451,12 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       attackIntervalSeconds,
       pAtk,
       pSpAtk,
-      pDef
+      pDef,
+      moveType,
+      movePower,
+      isSpecialMove,
+      stabMultiplier,
+      attackerOffenseStat
     } = attackerStats;
 
     return POKEMON_TIER_DATA.map((target) => {
@@ -655,7 +660,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
         wildSpDef,
         targetDefense,
         effectiveBulk, // HP × Defensa relevante (métrica más precisa de "aguante")
-        bestMove: selectedMove.move.name,
+        bestMove: currentMove.name,
         defenseTier,
         defenseLabel,
         finalDamagePerHit,
