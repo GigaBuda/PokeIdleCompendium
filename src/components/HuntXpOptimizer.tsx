@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { POKEMON_TIER_DATA, OfficialPokemon } from '../data/pokemonTierData';
 import { ITEMS_DATA } from '../data/itemsData';
+import { getHuntCalibration, installHuntCalibrationBridge } from '../data/huntCalibration';
 import {
   calculateStat,
   calculatePower,
@@ -74,81 +75,13 @@ const normalize = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u03
  * Las sesiones reales aportan segundos por derrota; las muestras conocidas
  * se conservan como referencias y el resto usa un modelo continuo calibrado.
  */
-const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
-  49: 3600 / 425,     // Venomoth: ~425 derrotas/h
-  163: 3600 / 186,    // Xatu: ~186 derrotas/h
-  205: 3600 / 538,    // Forretress: ~538 derrotas/h
-  227: 3600 / (4100 / (9 + 55 / 60)) // Skarmory: 4.100 derrotas en 9h55m
-};
-
-// Hunt Lv.150: calibración compartida con sesiones reales del Hunt Analyzer.
-// Referencia actual: Brave Steelix, 295 derrotas/h.
-// Se aplica a todo Hunt 150 y luego el combate propio de cada especie ajusta la cadencia.
-const REAL_HUNT_LEVEL_CALIBRATIONS: Record<number, number> = {
-  150: 3600 / 295
-};
-
-// Hunt Lv.150: la recompensa visible del juego confirma la fórmula directa.
-// Base 13.508 + VIP 6.754 (+50%) + Evento 13.508 (+100%) = 33.770 XP/derrota.
-// No aplicamos un factor adicional de XP al Hunt 150: los multiplicadores visibles
-// ya determinan la XP/kill real y el evento x2 debe escalarla exactamente.
-const REAL_HUNT_LEVEL_XP_FACTORS: Record<number, number> = {
-  150: 1
-};
-
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
-// Una derrota real de Skarmory con el perfil de referencia se resuelve en 1 golpe.
-// Sirve como ancla para que la calibración real siga reaccionando a IV/Quality/velocidad.
 const REAL_HUNT_REFERENCE_COMBAT_SECONDS = 0.60;
-
-// Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
 const XP_CALIBRATION_FACTOR = 0.9953234328;
-
-// Calibración específica de Brave Venusaur con Typhlosion.
-// Sesión real: 80 derrotas en 21m01s = 228,39 derrotas/h.
-// El ciclo se ajusta restando el delta de combate de referencia (0,60s)
-// para que IV/Quality sigan modificando la velocidad alrededor de este punto.
-const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
-  878: (((21 + 1 / 60) * 60) / 80) - (0.66 - REAL_HUNT_REFERENCE_COMBAT_SECONDS),
-  // Furious Skarmory: sesión real ~6,0M XP/h con VIP, Typhlosion IV129/Q1.29,
-  // sin TM de área. La base se normaliza para que el delta de combate siga
-  // reaccionando a IV/Quality/Speed sin perder el ancla real.
-  888: 11.6694872086,
-  // Ancient Pinsir — calibración actualizada con Hunt Analyzer real:
-  // 465 derrotas en 1h04m = 435,9375 kills/h.
-  // El ciclo observado es 3840 / 465 = 8,2580645 s por derrota.
-  // En el perfil actual el combate calculado es ~0,20s, mientras que la referencia
-  // de combate es 0,60s; el modelo resta ese delta. Por eso el ancla base debe ser
-  // 8,6580645s para que el ciclo FINAL sea 8,2580645s en IV129 / Q1.29 / Lv191.
-  // Así la calibración coincide con la sesión real (~435,94 kills/h) y sigue
-  // reaccionando a cambios de IV / Quality / Speed.
-  907: 8.6580645161,
-  // Ancient Meganium: Hunt Analyzer real = 81 derrotados en 18m28s = 263,17 kills/h.
-  // Perfil de referencia: Typhlosion Lv150 / IV129 / Q1.29.
-  // El ciclo observado (13,679s) se separa del tiempo de combate calculado (~0,690s)
-  // para mantener la respuesta a IV/Quality/Speed alrededor del punto real.
-  903: 13.5888162672
-};
-
-// XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
-const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
-  878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR),
-  // Ancient Pinsir — XP real de esta sesión:
-  // 15.537.577 XP / 465 derrotas = 33.414,14 XP/derrota.
-  // Con base 13.508 × VIP 1,5 × evento XP×2 y el factor global de calibración,
-  // el factor específico resultante es 0,8284261619.
-  // Esto ancla el modelo a ~14.528.643 XP/h con 435,9375 kills/h.
-  907: 0.8284261619,
-  // Ancient Meganium: 2.640.814 XP / 81 derrotas = 32.602,64 XP/kill.
-  // Frente a 13.508 base × 1,5 VIP × 2 evento.
-  903: 0.8045267490
-};
-
 const POKEGRID_TM_POWER = 300;
 const POKEGRID_TM_COOLDOWN_SECONDS = 10;
 const POKEGRID_TM_TARGETS = 2;
-// Densidad AoE equivalente a la calibración real ya usada en Hunt Analyzer.
 const REAL_HUNT_AOE_TARGET_MULTIPLIER = 16.5 / 14;
 
 type HuntMove = OfficialPokemon['attacks'][number] & { isCustom?: boolean };
@@ -302,10 +235,8 @@ function projectHuntCombat(
   );
   const combatTimeSeconds = continuousHitsToKill * attackIntervalSeconds;
 
-  const calibratedCycleSeconds =
-    REAL_HUNT_SPECIES_CALIBRATIONS[target.id] ??
-    REAL_HUNT_CALIBRATIONS[target.id] ??
-    REAL_HUNT_LEVEL_CALIBRATIONS[wildLevel];
+  const calibration = getHuntCalibration(target.id, wildLevel);
+  const calibratedCycleSeconds = calibration?.cycleSeconds;
   const fallbackCycleSeconds = Math.max(
     REAL_HUNT_REFERENCE_CYCLE_SECONDS,
     REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
@@ -485,6 +416,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   initialPokemon = null,
   initialPlayerLevel
 }) => {
+  useEffect(() => installHuntCalibrationBridge(), []);
+
   // Attacker configuration (calibrated with user Typhlosion profile by default)
   const [selectedAttackerId, setSelectedAttackerId] = useState<number>(
     initialPokemon?.id || (savedTeam.length > 0 ? savedTeam[0].id : 157) // Default to Typhlosion
@@ -766,15 +699,15 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const vipXpMult = isVipBonus ? 1.5 : 1;
       const eventXpMult = hasDoubleXpEvent ? 2 : 1;
       const baseXp = target.experience * vipXpMult * eventXpMult;
-      const xpPerKill = Math.round(baseXp * dailyXpMult);
-      const huntLevelXpFactor = REAL_HUNT_LEVEL_XP_FACTORS[wildLevel] ?? 1;
-      const speciesXpFactor = REAL_HUNT_SPECIES_XP_FACTORS[target.id] ?? 1;
+      const calibration = getHuntCalibration(target.id, wildLevel);
+      const calibratedXpPerKill =
+        calibration?.xpPerKill !== undefined
+          ? calibration.xpPerKill * dailyXpMult
+          : baseXp * dailyXpMult * XP_CALIBRATION_FACTOR;
+      const xpPerKill = Math.round(calibratedXpPerKill);
       const xpPerHourExact =
         combat.killsPerHourExact *
-        xpPerKill *
-        XP_CALIBRATION_FACTOR *
-        huntLevelXpFactor *
-        speciesXpFactor;
+        calibratedXpPerKill;
       const xpPerHour = Math.round(xpPerHourExact);
 
       let defenseTier: 'fragile' | 'medium' | 'tank' = 'medium';
