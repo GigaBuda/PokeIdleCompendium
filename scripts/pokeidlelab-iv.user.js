@@ -25,6 +25,7 @@
   let current = null;
   let lastText = "";
   let dragging = false;
+  let lastPokemonTooltip = null;
 
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const num = v => Number(String(v ?? "").replace(",", ".").replace(/[^\d.-]/g, ""));
@@ -285,21 +286,60 @@
   }
 
   function observeTooltips() {
+    const hide = () => {
+      const panel = document.getElementById(CFG.panelId);
+      if (panel) panel.style.display = "none";
+      lastPokemonTooltip = null;
+      lastText = "";
+    };
+
     const scan = () => {
       const tips = Array.from(document.querySelectorAll(".inv-tip"));
+      // A calculadora só existe enquanto existe um tooltip de Pokémon.
+      // Se o tooltip for de item/recurso, parseTooltip() devolve null.
+      let found = false;
+
       for (const tip of tips) {
         const text = tip.innerText || "";
-        if (!text || text === lastText) continue;
-        lastText = text;
+        if (!text) continue;
+
         const parsed = parseTooltip(text);
-        if (parsed) render(parsed);
+        if (!parsed) continue;
+
+        found = true;
+        if (tip !== lastPokemonTooltip || text !== lastText) {
+          lastPokemonTooltip = tip;
+          lastText = text;
+          render(parsed);
+        }
+        break;
       }
+
+      if (!found) hide();
     };
-    new MutationObserver(scan).observe(document.body, { childList:true, subtree:true, characterData:true });
+
+    new MutationObserver(scan).observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true
+    });
+
+    // O tooltip é criado/destruído pelo jogo quando o mouse entra/sai
+    // do Pokémon. Não deixamos o painel persistir depois que o mouse saiu.
     document.addEventListener("mouseover", e => {
-      if (e.target.closest(".inv-tip")) setTimeout(scan, 20);
+      const tip = e.target.closest && e.target.closest(".inv-tip");
+      if (tip) setTimeout(scan, 0);
     }, true);
-    setInterval(scan, 500);
+
+    document.addEventListener("mouseout", e => {
+      const tip = e.target.closest && e.target.closest(".inv-tip");
+      if (tip && (!e.relatedTarget || !tip.contains(e.relatedTarget))) {
+        setTimeout(scan, 30);
+      }
+    }, true);
+
+    setInterval(scan, 150);
   }
 
   async function init() {
