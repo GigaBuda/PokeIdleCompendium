@@ -108,7 +108,7 @@ const XP_CALIBRATION_FACTOR = 0.9953234328;
 // El ciclo se ajusta restando el delta de combate de referencia (0,60s)
 // para que IV/Quality sigan modificando la velocidad alrededor de este punto.
 const REAL_HUNT_SPECIES_CALIBRATIONS: Record<number, number> = {
-  878: 3600 / (80 / ((21 + 1 / 60) * 60)) - (0.66 - REAL_HUNT_REFERENCE_COMBAT_SECONDS)
+  878: (((21 + 1 / 60) * 60) / 80) - (0.66 - REAL_HUNT_REFERENCE_COMBAT_SECONDS)
 };
 
 // XP real observado: 1.772.740 / 80 = 22.159,25 XP por derrota con VIP.
