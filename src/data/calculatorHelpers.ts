@@ -59,7 +59,7 @@ export function calculateStat(base: number, growth: number, level: number, quali
  */
 export function getPokemonGeneration(id: number): number {
   // IDs 866–899: formas especiales Lv.150 (Brave/Furious/Psy/etc.) de Gen 1-2
-  if (id >= 866 && id <= 899) return 2;
+  if ((id >= 866 && id <= 899) || (id >= 890 && id <= 913)) return 2;
   if (id <= 151) return 1;
   if (id <= 251) return 2;
   if (id <= 386) return 3;
