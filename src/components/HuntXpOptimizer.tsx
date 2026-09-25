@@ -605,7 +605,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
   // Tipo del Día: +20% XP y +20% loot en Pokémon de ese tipo (cambia cada 24h)
   const [dailyTypeBonus, setDailyTypeBonus] = useState<string>('NONE');
-  const [tierlistHuntLevel, setTierlistHuntLevel] = useState<number>(150);
 
   // Sorting: Field & Direction (Ascending / Descending)
   const [sortBy, setSortBy] = useState<SortField>('xpPerHour');
@@ -1030,69 +1029,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
     return sorted[0];
   }, [allSimulatedTargets, selectedHuntingZone, specificHuntLevel, selectedGenerations]);
-
-  // Tierlist por elemento al estilo PokeGrid: cada especie se evalúa en la
-  // misma Hunt, con atacante normalizado a Lv de la Hunt / IV96 / Q1.00.
-  const elementTierlist = useMemo(() => {
-    const targets = POKEMON_TIER_DATA.filter((target) => target.huntLevel === tierlistHuntLevel);
-    const grouped = new Map<string, Array<{
-      pokemon: OfficialPokemon;
-      xpPerHour: number;
-      bestTarget: OfficialPokemon;
-      bestMove: string;
-      killsPerHour: number;
-    }>>();
-
-    for (const attacker of POKEMON_TIER_DATA) {
-      let best: {
-        pokemon: OfficialPokemon;
-        xpPerHour: number;
-        bestTarget: OfficialPokemon;
-        bestMove: string;
-        killsPerHour: number;
-      } | null = null;
-
-      for (const target of targets) {
-        const combat = projectHuntCombat(
-          attacker, target, tierlistHuntLevel, 96, 1, 0, 'NONE',
-          hasAoeBonus, hasElementalTm, attacker.type1
-        );
-        const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
-        const xpFactor = REAL_HUNT_LEVEL_XP_FACTORS[tierlistHuntLevel] ?? 1;
-        const speciesFactor = REAL_HUNT_SPECIES_XP_FACTORS[target.id] ?? 1;
-        const xpPerHour =
-          combat.killsPerHourExact *
-          Math.round(baseXp) *
-          XP_CALIBRATION_FACTOR *
-          xpFactor *
-          speciesFactor;
-
-        if (!best || xpPerHour > best.xpPerHour) {
-          best = {
-            pokemon: attacker,
-            xpPerHour,
-            bestTarget: target,
-            bestMove: combat.bestMove.name,
-            killsPerHour: combat.killsPerHourExact
-          };
-        }
-      }
-
-      if (!best) continue;
-      for (const type of [attacker.type1, attacker.type2].filter(Boolean) as string[]) {
-        const rows = grouped.get(type) || [];
-        rows.push(best);
-        grouped.set(type, rows);
-      }
-    }
-
-    return [...grouped.entries()]
-      .map(([type, rows]) => ({
-        type,
-        rows: rows.sort((a, b) => b.xpPerHour - a.xpPerHour).slice(0, 5)
-      }))
-      .sort((a, b) => a.type.localeCompare(b.type));
-  }, [tierlistHuntLevel, hasAoeBonus, hasElementalTm, isVipBonus]);
 
   // Next level XP curve calculation
   const xpNeededForNextLevel = useMemo(() => {
@@ -1737,54 +1673,6 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                 Todas (1 a 4+)
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Tierlist por elemento */}
-        <div className="rounded-xl border border-slate-800 bg-[#0d1017] p-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-amber-400" />
-                Tierlist por elemento · modelo PokeGrid
-              </h4>
-              <p className="text-[10px] text-slate-500 mt-1">
-                Perfil normalizado: atacante Nv. Hunt · IV 96 · Quality 1.00 · mejor ataque por presa.
-              </p>
-            </div>
-            <select
-              value={tierlistHuntLevel}
-              onChange={(e) => setTierlistHuntLevel(Number(e.target.value))}
-              className="rounded-lg bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs text-amber-300 font-semibold"
-            >
-              {[20, 40, 60, 80, 100, 120, 150, 200, 600].map((level) => (
-                <option key={level} value={level}>Hunt Nv. {level}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
-            {elementTierlist.map((group) => (
-              <div key={group.type} className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${getTypeBadgeStyle(group.type)}`}>
-                    {group.type}
-                  </span>
-                  <span className="text-[9px] text-slate-500">Top 5 · XP/h</span>
-                </div>
-                <div className="space-y-1">
-                  {group.rows.map((row, index) => (
-                    <div key={row.pokemon.id} className="flex items-center gap-2 text-[10px]">
-                      <span className="w-4 text-slate-600 font-mono">{index + 1}</span>
-                      <img src={getPokemonSprite(row.pokemon.id)} alt="" className="w-5 h-5 object-contain" />
-                      <span className="font-semibold text-slate-200 truncate flex-1">{row.pokemon.name}</span>
-                      <span className="font-mono text-amber-400">{Math.round(row.xpPerHour).toLocaleString()}</span>
-                      <span className="text-slate-500">· {row.bestTarget.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
