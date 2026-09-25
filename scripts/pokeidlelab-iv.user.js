@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.1
+// @version      1.0.2
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -151,6 +151,55 @@
     return String(value || "").split(/[\\/,]/)[0].trim();
   }
 
+
+  function spriteCacheKey(name) {
+    return norm(name).replace(/\s+/g, "-");
+  }
+
+  function getCachedSpriteId(name) {
+    try {
+      const cache = JSON.parse(localStorage.getItem("pokemon-api-cache") || "{}");
+      return Number(cache[spriteCacheKey(name)]?.id) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async function resolveSpriteData(data) {
+    if (!data?.name || data.spriteAnim || data.spriteStill) return;
+
+    let id = Number(data.creature?.id ?? data.creature?.dexId ?? data.creature?.nationalId ?? 0);
+    if (!id) id = getCachedSpriteId(data.name);
+
+    if (!id) {
+      try {
+        const apiName = norm(data.name).replace(/\s+/g, "-");
+        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${encodeURIComponent(apiName)}`);
+        if (response.ok) {
+          const api = await response.json();
+          id = Number(api?.id) || 0;
+          if (id) {
+            try {
+              const cache = JSON.parse(localStorage.getItem("pokemon-api-cache") || "{}");
+              cache[spriteCacheKey(data.name)] = { id };
+              localStorage.setItem("pokemon-api-cache", JSON.stringify(cache));
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+
+    if (!id || current !== data) return;
+
+    const normalizedId = id >= 13000 && id < 14000 ? id - 13000 : id;
+    const shiny = /shiny/i.test(data.name) || Number(data.quality) > 1.8;
+    const folder = shiny ? "shiny/" : "";
+    const base = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon";
+    data.spriteAnim = `${base}/versions/generation-v/black-white/animated/${folder}${normalizedId}.gif`;
+    data.spriteStill = `${base}/${folder}${normalizedId}.png`;
+    render(data);
+  }
+
   function calculate(p) {
     const c = findCreature(p.name);
     const bases = {};
@@ -185,9 +234,12 @@
     }
 
     const sprites = spriteUrls(c, p);
+    const cachedId = Number(c?.id ?? c?.dexId ?? c?.nationalId ?? 0) || getCachedSpriteId(p.name);
+    const cachedSprites = cachedId ? spriteUrls({ id: cachedId }, p) : { anim: "", still: "" };
     return {
       ...p, creature: c, bases, stats, ivs, total, pct, classification, classColor,
-      power: Math.round(power), moves, type: typeName(c), spriteAnim: sprites.anim, spriteStill: sprites.still
+      power: Math.round(power), moves, type: typeName(c),
+      spriteAnim: sprites.anim || cachedSprites.anim, spriteStill: sprites.still || cachedSprites.still
     };
   }
 
@@ -277,7 +329,7 @@
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Golpes</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.1</span></div>`;
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.2</span></div>`;
 
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
@@ -286,6 +338,7 @@
     }));
     panel.style.display = "block";
     exposeToPokeGrid(data);
+    if (!data.spriteAnim && !data.spriteStill) resolveSpriteData(data);
   }
 
   function exposeToPokeGrid(data) {
@@ -355,7 +408,8 @@
         break;
       }
 
-      if (!found) hide();
+      // El panel queda fijado después del primer Pokémon; el siguiente hover lo actualiza.
+      if (!found) return;
     };
 
     new MutationObserver(scan).observe(document.body, {
