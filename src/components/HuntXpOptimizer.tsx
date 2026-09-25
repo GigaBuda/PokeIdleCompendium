@@ -69,6 +69,9 @@ export type SortDirection = 'asc' | 'desc';
 
 const normalize = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
+// Calibración contra sesión real del Hunt Analyzer: 4.100 derrotas en 9h55m y 3.708.545 XP/h.
+const XP_CALIBRATION_FACTOR = 0.9953234328;
+
 /** Selector de Pokémon con búsqueda (igual que en la Calculadora de Poder) */
 const SpeciesSelect: React.FC<{ value: number; onChange: (id: number) => void }> = ({ value, onChange }) => {
   const list = useMemo(() => [...POKEMON_TIER_DATA].sort((a, b) => a.id - b.id), []);
@@ -491,7 +494,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const killsPerMinute = +(60 / totalCycleSeconds).toFixed(1);
       const timeToKillSeconds = +combatTimeSeconds.toFixed(1);
 
-      // Official XP per kill:
+      // Official XP per kill + calibration from real Hunt Analyzer session:
       // VIP / Boost: +50% EXP
       // Tipo del Día: +20% XP si el objetivo es de ese tipo (type1 o type2)
       const hasDailyTypeBonus =
@@ -501,7 +504,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1.0;
       const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
-      const xpPerHour = killsPerHour * xpPerKill;
+      const xpPerHour = Math.round(killsPerHour * xpPerKill * XP_CALIBRATION_FACTOR);
 
       // Enemy frailty classification using EFFECTIVE BULK (HP × Defensa)
       // Umbrales calibrados: bulk bajo = fácil de matar, bulk alto = tanque real
