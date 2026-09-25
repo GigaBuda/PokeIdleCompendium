@@ -4,6 +4,25 @@ title PokeIdle Wiki - Servidor local
 cd /d "%~dp0"
 
 echo ============================================
+echo   PokeIdle Wiki - comprobando actualizaciones
+echo ============================================
+echo.
+
+where git >nul 2>nul
+if errorlevel 1 (
+  echo [AVISO] Git no esta instalado. Se usara la version local.
+  goto :start_game
+)
+
+if exist "sincronizar-pokeidle.ps1" (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0sincronizar-pokeidle.ps1"
+) else (
+  echo [AVISO] No encuentro sincronizar-pokeidle.ps1. Se usara la version local.
+)
+
+:start_game
+echo.
+echo ============================================
 echo   PokeIdle Wiki - arrancando la web
 echo ============================================
 echo.
