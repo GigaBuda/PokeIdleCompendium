@@ -116,6 +116,236 @@ const REAL_HUNT_SPECIES_XP_FACTORS: Record<number, number> = {
   878: 22159.25 / (13508 * 1.5 * XP_CALIBRATION_FACTOR)
 };
 
+const POKEGRID_TM_POWER = 300;
+const POKEGRID_TM_COOLDOWN_SECONDS = 10;
+const POKEGRID_TM_TARGETS = 2;
+// Densidad AoE equivalente a la calibración real ya usada en Hunt Analyzer.
+const REAL_HUNT_AOE_TARGET_MULTIPLIER = 16.5 / 14;
+
+type HuntMove = OfficialPokemon['attacks'][number] & { isCustom?: boolean };
+
+interface HuntCombatProjection {
+  wildMaxHp: number;
+  wildDef: number;
+  wildSpDef: number;
+  targetDefense: number;
+  effectiveBulk: number;
+  bestMove: HuntMove;
+  moveType: string;
+  movePower: number;
+  isSpecialMove: boolean;
+  hasStab: boolean;
+  stabMultiplier: number;
+  attackerOffenseStat: number;
+  finalDamagePerHit: number;
+  continuousDamagePerHit: number;
+  hitsToKill: number;
+  continuousHitsToKill: number;
+  combatTimeSeconds: number;
+  totalCycleSeconds: number;
+  killsPerHourExact: number;
+  tmKillsPerHourExact: number;
+  elementalMultiplier: number;
+}
+
+function getMoveIsSpecial(moveType: string): boolean {
+  return SPECIAL_TYPES.includes(moveType.toUpperCase());
+}
+
+function getMoveStab(attacker: OfficialPokemon, moveType: string): number {
+  const upper = moveType.toUpperCase();
+  return upper === attacker.type1.toUpperCase() ||
+    (attacker.type2 ? upper === attacker.type2.toUpperCase() : false)
+    ? 1.5
+    : 1;
+}
+
+function projectHuntCombat(
+  attacker: OfficialPokemon,
+  target: OfficialPokemon,
+  level: number,
+  ivTotal: number,
+  quality: number,
+  clanRank: number,
+  clanType: string,
+  hasAoeBonus: boolean,
+  hasElementalTm: boolean,
+  elementalTmType: string,
+  forcedMove?: HuntMove
+): HuntCombatProjection {
+  const statGrowth = ivTotal / 6;
+  const clanMatches =
+    clanType !== 'NONE' &&
+    (attacker.type1.toUpperCase() === clanType ||
+      attacker.type2?.toUpperCase() === clanType);
+  const clanBonusMultiplier = clanMatches ? 1 + clanRank * 0.06 : 1;
+
+  const pAtk = Math.round(
+    calculateStat(attacker.baseAtk, statGrowth, level, quality) * clanBonusMultiplier
+  );
+  const pSpAtk = Math.round(
+    calculateStat(attacker.baseSpAtk, statGrowth, level, quality) * clanBonusMultiplier
+  );
+  const pSpeed = calculateStat(attacker.baseSpeed, statGrowth, level, quality);
+  const attackIntervalSeconds = Math.max(0.6, 1.5 - pSpeed / 300);
+
+  const wildLevel = target.huntLevel || 50;
+  // Perfil normalizado de PokeGrid: defensor IV 96 / Quality 1.00.
+  // La cadencia se recalibra con Hunt Analyzer cuando existe una muestra real.
+  const WILD_IV_TOTAL = 96;
+  const WILD_QUALITY = 1;
+  const wildGrowth = WILD_IV_TOTAL / 6;
+  const wildMaxHp =
+    calculateStat(target.baseHp, wildGrowth, wildLevel, WILD_QUALITY) * 5;
+  const wildDef = calculateStat(target.baseDef, wildGrowth, wildLevel, WILD_QUALITY);
+  const wildSpDef = calculateStat(target.baseSpDef, wildGrowth, wildLevel, WILD_QUALITY);
+
+  const naturalMoves = (attacker.attacks || [])
+    .filter((move) => !move.tm && move.power > 0 && move.learnLevel <= level);
+  const candidateMoves = forcedMove
+    ? [forcedMove]
+    : naturalMoves.length > 0
+      ? naturalMoves
+      : (attacker.attacks || []).filter((move) => !move.tm && move.power > 0);
+
+  const evaluatedMoves = candidateMoves.map((move) => {
+    const moveType = move.type.toUpperCase();
+    const isSpecialMove = getMoveIsSpecial(moveType);
+    const targetDefense = Math.max(1, isSpecialMove ? wildSpDef : wildDef);
+    const attackerOffenseStat = isSpecialMove ? pSpAtk : pAtk;
+    const elementalMultiplier = getAmplifiedMultiplier(
+      moveType,
+      target.type1,
+      target.type2
+    );
+    const stabMultiplier = getMoveStab(attacker, moveType);
+    const rawDamage =
+      ((2 * level / 5 + 2) * move.power *
+        (attackerOffenseStat / targetDefense)) / 50 + 2;
+    const continuousDamagePerHit = Math.max(
+      1,
+      rawDamage * elementalMultiplier * stabMultiplier
+    );
+    return {
+      move,
+      moveType,
+      isSpecialMove,
+      targetDefense,
+      attackerOffenseStat,
+      elementalMultiplier,
+      stabMultiplier,
+      continuousDamagePerHit
+    };
+  });
+
+  const best = [...evaluatedMoves].sort(
+    (a, b) => b.continuousDamagePerHit - a.continuousDamagePerHit
+  )[0];
+
+  const fallbackMove: HuntMove = forcedMove || {
+    name: 'Tackle',
+    type: 'NORMAL',
+    power: 40,
+    learnLevel: 1,
+    tm: null
+  };
+  const selected = best || {
+    move: fallbackMove,
+    moveType: fallbackMove.type,
+    isSpecialMove: false,
+    targetDefense: wildDef,
+    attackerOffenseStat: pAtk,
+    elementalMultiplier: getAmplifiedMultiplier(
+      fallbackMove.type,
+      target.type1,
+      target.type2
+    ),
+    stabMultiplier: getMoveStab(attacker, fallbackMove.type),
+    continuousDamagePerHit: 1
+  };
+
+  const finalDamagePerHit = Math.max(1, Math.round(selected.continuousDamagePerHit));
+  const effectiveBulk = Math.round(wildMaxHp * (selected.targetDefense / 50));
+  const hitsToKill = Math.max(1, Math.ceil(wildMaxHp / finalDamagePerHit));
+  const continuousHitsToKill = Math.max(
+    0.1,
+    wildMaxHp / selected.continuousDamagePerHit
+  );
+  const combatTimeSeconds = continuousHitsToKill * attackIntervalSeconds;
+
+  const calibratedCycleSeconds =
+    REAL_HUNT_SPECIES_CALIBRATIONS[target.id] ??
+    REAL_HUNT_CALIBRATIONS[target.id] ??
+    REAL_HUNT_LEVEL_CALIBRATIONS[wildLevel];
+  const fallbackCycleSeconds = Math.max(
+    REAL_HUNT_REFERENCE_CYCLE_SECONDS,
+    REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
+  );
+  const combatDeltaSeconds =
+    combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS;
+  const calibratedBaseCycle =
+    calibratedCycleSeconds !== undefined
+      ? calibratedCycleSeconds
+      : fallbackCycleSeconds;
+  const normalCycleSeconds = Math.max(
+    0.6,
+    calibratedBaseCycle + combatDeltaSeconds
+  );
+  const aoeTargetMultiplier = hasAoeBonus
+    ? REAL_HUNT_AOE_TARGET_MULTIPLIER
+    : 1;
+  const normalKillsPerHourExact =
+    (3600 / normalCycleSeconds) * aoeTargetMultiplier;
+
+  let tmKillsPerHourExact = 0;
+  if (hasElementalTm) {
+    const tmType = elementalTmType.toUpperCase();
+    const tmIsSpecial = getMoveIsSpecial(tmType);
+    const tmOffense = tmIsSpecial ? pSpAtk : pAtk;
+    const tmEffectiveness = getAmplifiedMultiplier(
+      tmType,
+      target.type1,
+      target.type2
+    );
+    const tmStab = getMoveStab(attacker, tmType);
+    const tmRawDamage =
+      ((2 * level / 5 + 2) * POKEGRID_TM_POWER *
+        (tmOffense / Math.max(1, selected.targetDefense))) / 50 + 2;
+    const tmDamageRatio = Math.min(
+      1,
+      Math.max(0, (tmRawDamage * tmEffectiveness * tmStab) / wildMaxHp)
+    );
+    tmKillsPerHourExact =
+      (3600 / POKEGRID_TM_COOLDOWN_SECONDS) *
+      POKEGRID_TM_TARGETS *
+      tmDamageRatio;
+  }
+
+  return {
+    wildMaxHp,
+    wildDef,
+    wildSpDef,
+    targetDefense: selected.targetDefense,
+    effectiveBulk,
+    bestMove: { ...selected.move, isCustom: false },
+    moveType: selected.moveType,
+    movePower: selected.move.power,
+    isSpecialMove: selected.isSpecialMove,
+    hasStab: selected.stabMultiplier > 1,
+    stabMultiplier: selected.stabMultiplier,
+    attackerOffenseStat: selected.attackerOffenseStat,
+    finalDamagePerHit,
+    continuousDamagePerHit: selected.continuousDamagePerHit,
+    hitsToKill,
+    continuousHitsToKill,
+    combatTimeSeconds,
+    totalCycleSeconds: normalCycleSeconds,
+    killsPerHourExact: normalKillsPerHourExact + tmKillsPerHourExact,
+    tmKillsPerHourExact,
+    elementalMultiplier: selected.elementalMultiplier
+  };
+}
+
 /** Selector de Pokémon con búsqueda (igual que en la Calculadora de Poder) */
 const SpeciesSelect: React.FC<{ value: number; onChange: (id: number) => void }> = ({ value, onChange }) => {
   const list = useMemo(() => [...POKEMON_TIER_DATA].sort((a, b) => a.id - b.id), []);
@@ -232,8 +462,11 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [playerLevel, setPlayerLevel] = useState<number>(initialPlayerLevel || 20);
   const [playerTotalIv, setPlayerTotalIv] = useState<number>(129); // 0-192 (calibrado a 129)
   const [playerQuality, setPlayerQuality] = useState<number>(1.29); // Quality (calibrado a 1.29x)
-  const [clanRank, setClanRank] = useState<number>(0); // Rank 0 (sin rango de clan)
-  const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(true); // Multi-target bonus
+  const [clanRank, setClanRank] = useState<number>(0); // Rank 0
+  const [clanType, setClanType] = useState<string>('NONE');
+  const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(false); // Sin TM de área por defecto
+  const [hasElementalTm, setHasElementalTm] = useState<boolean>(false);
+  const [elementalTmType, setElementalTmType] = useState<string>(attackerPokemon.type1);
   const [isVipBonus, setIsVipBonus] = useState<boolean>(true); // Cuenta VIP / Boost (+50% EXP como en sesión de 136k XP/h)
 
   // Level Restriction Rule: Player level restricts hunts accessible
@@ -335,6 +568,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     if (initialPokemon) {
       setSelectedAttackerId(initialPokemon.id);
       setSelectedMoveType(initialPokemon.type1);
+      setElementalTmType(initialPokemon.type1);
       setSelectedMoveName('');
     }
   }, [initialPokemon]);
@@ -352,6 +586,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     const mon = POKEMON_TIER_DATA.find((p) => p.id === id);
     if (mon) {
       setSelectedMoveType(mon.type1);
+      setElementalTmType(mon.type1);
     }
   };
 
@@ -363,6 +598,7 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
   // Tipo del Día: +20% XP y +20% loot en Pokémon de ese tipo (cambia cada 24h)
   const [dailyTypeBonus, setDailyTypeBonus] = useState<string>('NONE');
+  const [tierlistHuntLevel, setTierlistHuntLevel] = useState<number>(150);
 
   // Sorting: Field & Direction (Ascending / Descending)
   const [sortBy, setSortBy] = useState<SortField>('xpPerHour');
@@ -405,11 +641,14 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     }
   };
 
-  // Calculate Attacker Stats & Effective Move Power
+  // Stats del atacante. El bono de clan solo se aplica si el elemento coincide.
   const attackerStats = useMemo(() => {
     const statGrowth = playerTotalIv / 6;
-    // Bono de clan: +6% por rango en ATQ / ATQ Esp. / DEF / DEF Esp. (HP y Speed no reciben bono)
-    const clanBonusMultiplier = 1 + clanRank * 0.06;
+    const clanMatches =
+      clanType !== 'NONE' &&
+      (attackerPokemon.type1.toUpperCase() === clanType ||
+        attackerPokemon.type2?.toUpperCase() === clanType);
+    const clanBonusMultiplier = clanMatches ? 1 + clanRank * 0.06 : 1;
     const pHp = calculateStat(attackerPokemon.baseHp, statGrowth, playerLevel, playerQuality);
     const pAtk = Math.round(calculateStat(attackerPokemon.baseAtk, statGrowth, playerLevel, playerQuality) * clanBonusMultiplier);
     const pDef = Math.round(calculateStat(attackerPokemon.baseDef, statGrowth, playerLevel, playerQuality) * clanBonusMultiplier);
@@ -417,37 +656,20 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     const pSpDef = Math.round(calculateStat(attackerPokemon.baseSpDef, statGrowth, playerLevel, playerQuality) * clanBonusMultiplier);
     const pSpeed = calculateStat(attackerPokemon.baseSpeed, statGrowth, playerLevel, playerQuality);
     const power = calculatePower(pHp, pAtk, pDef, pSpAtk, pSpDef, pSpeed, playerQuality);
-
-    const attackIntervalSeconds = Math.max(0.6, 1.5 - (pSpeed / 300));
-
     const moveType = ('isCustom' in currentMove && currentMove.isCustom) ? selectedMoveType : currentMove.type;
     const movePower = currentMove.power || 40;
-    const isSpecialMove = SPECIAL_TYPES.includes(moveType.toUpperCase());
-
-    const hasStab =
-      moveType.toUpperCase() === attackerPokemon.type1.toUpperCase() ||
-      (attackerPokemon.type2 ? moveType.toUpperCase() === attackerPokemon.type2.toUpperCase() : false);
-    const stabMultiplier = hasStab ? 1.5 : 1.0;
+    const isSpecialMove = getMoveIsSpecial(moveType);
+    const hasStab = getMoveStab(attackerPokemon, moveType) > 1;
+    const stabMultiplier = hasStab ? 1.5 : 1;
     const attackerOffenseStat = isSpecialMove ? pSpAtk : pAtk;
+    const attackIntervalSeconds = Math.max(0.6, 1.5 - pSpeed / 300);
 
     return {
-      pHp,
-      pAtk,
-      pDef,
-      pSpAtk,
-      pSpDef,
-      pSpeed,
-      power,
-      clanBonusMultiplier,
-      attackIntervalSeconds,
-      moveType,
-      movePower,
-      isSpecialMove,
-      hasStab,
-      stabMultiplier,
-      attackerOffenseStat
+      pHp, pAtk, pDef, pSpAtk, pSpDef, pSpeed, power,
+      clanBonusMultiplier, attackIntervalSeconds, moveType, movePower,
+      isSpecialMove, hasStab, stabMultiplier, attackerOffenseStat
     };
-  }, [attackerPokemon, playerTotalIv, playerLevel, playerQuality, clanRank, currentMove, selectedMoveType]);
+  }, [attackerPokemon, playerTotalIv, playerLevel, playerQuality, clanRank, clanType, currentMove, selectedMoveType]);
 
   // Fast map of item prices from itemsData for accurate loot & profit estimation
   const itemPriceMap = useMemo(() => {
@@ -458,262 +680,162 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     return map;
   }, []);
 
-  // 1. Simulate combat performance for ALL targets in the database
+  // 1. Simulación estilo PokeGrid: mejor movimiento por presa + cadencia continua.
   const allSimulatedTargets = useMemo(() => {
-    const {
-      clanBonusMultiplier,
-      attackIntervalSeconds,
-      pAtk,
-      pSpAtk,
-      pDef,
-      moveType,
-      movePower,
-      isSpecialMove,
-      stabMultiplier,
-      attackerOffenseStat
-    } = attackerStats;
+    const forcedMove =
+      selectedMoveName === 'custom'
+        ? {
+            name: 'Ataque Personalizado',
+            type: selectedMoveType,
+            power: customMovePower,
+            learnLevel: 1,
+            tm: null,
+            isCustom: true
+          }
+        : selectedMoveName
+          ? ({ ...currentMove, isCustom: false } as HuntMove)
+          : undefined;
 
     return POKEMON_TIER_DATA.map((target) => {
+      const combat = projectHuntCombat(
+        attackerPokemon,
+        target,
+        playerLevel,
+        playerTotalIv,
+        playerQuality,
+        clanRank,
+        clanType,
+        hasAoeBonus,
+        hasElementalTm,
+        elementalTmType,
+        forcedMove
+      );
+
       const wildLevel = target.huntLevel || 50;
       const isLevelLocked = wildLevel > playerLevel;
-
-      // Wild Stats (HP is x5, Damage is x1.8) — documentación oficial
-      // Growth medio = 17 (media real de capturas ≈ 103/192) | Quality media = 1.20
-      const WILD_GROWTH = 17;
-      const WILD_QUALITY = 1.20;
-
-      const baseWildHp = calculateStat(target.baseHp, WILD_GROWTH, wildLevel, WILD_QUALITY);
-      const wildMaxHp = baseWildHp * 5; // ×5 oficial de la hunt
-
-      const baseWildAtk = calculateStat(target.baseAtk, WILD_GROWTH, wildLevel, WILD_QUALITY);
-      const baseWildSpAtk = calculateStat(target.baseSpAtk, WILD_GROWTH, wildLevel, WILD_QUALITY);
-      const wildRawOffense = Math.max(baseWildAtk, baseWildSpAtk);
-
-      // Defensas también calculadas con la fórmula (antes se usaba solo el base crudo)
-      const wildDef = calculateStat(target.baseDef, WILD_GROWTH, wildLevel, WILD_QUALITY);
-      const wildSpDef = calculateStat(target.baseSpDef, WILD_GROWTH, wildLevel, WILD_QUALITY);
-
-      // El juego usa el mismo movimiento seleccionado para toda la hunt.
-      // currentMove ya representa la mejor habilidad disponible del atacante
-      // según su nivel, potencia, STAB y especialidad ofensiva.
-      const targetDefense = isSpecialMove ? wildSpDef : wildDef;
-      const elementalMultiplier = getAmplifiedMultiplier(
-        moveType,
-        target.type1,
-        target.type2
-      );
-      const rawDamage =
-        ((2 * playerLevel / 5 + 2) * movePower *
-          (attackerOffenseStat / Math.max(1, targetDefense))) / 50 + 2;
-      const continuousDamagePerHit = Math.max(
-        1,
-        rawDamage * elementalMultiplier * stabMultiplier
-      );
-      const finalDamagePerHit = Math.max(1, Math.round(continuousDamagePerHit));
-
-      // === BULK EFECTIVO (HP × Defensa relevante) ===
-      const effectiveBulk = Math.round(wildMaxHp * (targetDefense / 50));
-
-      // Los golpes siguen disponibles como dato interno de daño, pero YA NO
-      // deciden la cadencia mediante reglas 1/2/3+. La velocidad de la hunt
-      // parte de tiempos reales del Hunt Analyzer (derrotas / duración).
-      const hitsToKill = Math.max(1, Math.ceil(wildMaxHp / finalDamagePerHit));
-      // Para el optimizador usamos también la fracción de la vida que consume
-      // cada golpe. Así IV/Quality no quedan "congelados" mientras sigan dentro
-      // del mismo número entero de golpes. La hunt real sigue mostrando los
-      // golpes enteros, pero XP/h se estima de forma continua.
-      const continuousHitsToKill = Math.max(0.1, wildMaxHp / continuousDamagePerHit);
-      const combatTimeSeconds = continuousHitsToKill * attackIntervalSeconds;
-
-      // Modelo continuo de tiempo de hunt:
-      // - Una sesión real fija el punto de referencia de segundos por derrota.
-      // - IV/Quality modifican el daño y, por tanto, el tiempo de combate.
-      // - El Disco TM de Área hace que los golpes normales salpiquen a todos
-      //   los salvajes del área. El optimizador histórico lo modelaba como
-      //   ~20% menos de ciclo en 1-2 golpes y ~15% menos desde 3 golpes;
-      //   mantenemos ese efecto para que el checkbox vuelva a afectar la XP/h.
-      const calibratedCycleSeconds =
-        REAL_HUNT_SPECIES_CALIBRATIONS[target.id] ??
-        REAL_HUNT_CALIBRATIONS[target.id] ??
-        REAL_HUNT_LEVEL_CALIBRATIONS[wildLevel];
-      const fallbackCycleSeconds = Math.max(
-        REAL_HUNT_REFERENCE_CYCLE_SECONDS,
-        REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
-      );
-      const aoeCycleMultiplier = hasAoeBonus
-        ? (hitsToKill <= 2 ? 0.80 : 14 / 16.5)
-        : 1.0;
-      const combatDeltaSeconds = combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS;
-      const calibratedBaseCycle = calibratedCycleSeconds !== undefined
-        ? calibratedCycleSeconds
-        : fallbackCycleSeconds;
-      const totalCycleSeconds = Math.max(
-        0.6,
-        calibratedBaseCycle + combatDeltaSeconds
-      ) * aoeCycleMultiplier;
-
-      // No redondeamos la tasa interna: el redondeo solo es visual. De este modo
-      // pequeños cambios de IV/Quality siguen llegando hasta la XP/h.
-      const killsPerHourExact = 3600 / totalCycleSeconds;
-      const killsPerHour = Math.round(killsPerHourExact);
-      const killsPerMinute = +(killsPerHourExact / 60).toFixed(1);
-      const timeToKillSeconds = +(Math.max(0.6, totalCycleSeconds - REAL_HUNT_REFERENCE_WALK_SECONDS)).toFixed(1);
-
-      // Official XP per kill + calibration from real Hunt Analyzer session:
-      // VIP / Boost: +50% EXP
-      // Tipo del Día: +20% XP si el objetivo es de ese tipo (type1 o type2)
       const hasDailyTypeBonus =
         dailyTypeBonus !== 'NONE' &&
         (target.type1.toUpperCase() === dailyTypeBonus ||
           target.type2?.toUpperCase() === dailyTypeBonus);
-      const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1.0;
+      const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1;
       const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
       const xpPerKill = Math.round(baseXp * dailyXpMult);
       const huntLevelXpFactor = REAL_HUNT_LEVEL_XP_FACTORS[wildLevel] ?? 1;
       const speciesXpFactor = REAL_HUNT_SPECIES_XP_FACTORS[target.id] ?? 1;
       const xpPerHourExact =
-        killsPerHourExact *
+        combat.killsPerHourExact *
         xpPerKill *
         XP_CALIBRATION_FACTOR *
         huntLevelXpFactor *
         speciesXpFactor;
       const xpPerHour = Math.round(xpPerHourExact);
 
-      // Enemy frailty classification using EFFECTIVE BULK (HP × Defensa)
-      // Umbrales calibrados: bulk bajo = fácil de matar, bulk alto = tanque real
       let defenseTier: 'fragile' | 'medium' | 'tank' = 'medium';
       let defenseLabel = 'Bulk Medio';
-      if (effectiveBulk <= 180) {
+      if (combat.effectiveBulk <= 180) {
         defenseTier = 'fragile';
         defenseLabel = 'Muy Frágil (Papel)';
-      } else if (effectiveBulk >= 420) {
+      } else if (combat.effectiveBulk >= 420) {
         defenseTier = 'tank';
         defenseLabel = 'Tanque Duro';
       }
 
-      // Damage received from wild
+      const wildRawOffense = Math.max(
+        calculateStat(target.baseAtk, 96 / 6, wildLevel, 1),
+        calculateStat(target.baseSpAtk, 96 / 6, wildLevel, 1)
+      );
       const wildVsPlayerMultiplier = getAmplifiedMultiplier(
         target.type1,
         attackerPokemon.type1,
         attackerPokemon.type2
       );
-      const rawWildDmg = ((2 * wildLevel / 5 + 2) * 50 * (wildRawOffense / Math.max(1, pDef))) / 50 + 2;
-      const wildDamagePerHit = Math.max(1, Math.round(rawWildDmg * 1.8 * wildVsPlayerMultiplier));
+      const rawWildDmg =
+        ((2 * wildLevel / 5 + 2) * 50 *
+          (wildRawOffense / Math.max(1, attackerStats.pDef))) / 50 + 2;
+      const wildDamagePerHit = Math.max(
+        1,
+        Math.round(rawWildDmg * 1.8 * wildVsPlayerMultiplier)
+      );
 
-      // Hits received before dying (el salvaje pega mientras matas)
-      const wildHitsDealt = hitsToKill === 1 ? 0 : Math.max(0, Math.floor(timeToKillSeconds / 1.5));
+      const timeToKillSeconds = +Math.max(
+        0.6,
+        combat.totalCycleSeconds - REAL_HUNT_REFERENCE_WALK_SECONDS
+      ).toFixed(1);
+      const wildHitsDealt =
+        combat.hitsToKill === 1 ? 0 : Math.max(0, Math.floor(timeToKillSeconds / 1.5));
       const totalDamageTakenPerKill = wildHitsDealt * wildDamagePerHit;
 
-      // Pociones por 100 kills (calibrado: sesión real Venomoth ≈ 78 potions/100 kills)
-      // Small/Great potion heal ~150-400; usamos 200 de media de curación efectiva
       let potionsPer100Kills = Math.ceil((totalDamageTakenPerKill * 100) / 200);
-      // Suelo mínimo si el combate dura varios golpes (refleja uso real de auto-potion)
-      if (hitsToKill >= 3) {
-        potionsPer100Kills = Math.max(potionsPer100Kills, 40);
-      } else if (hitsToKill === 2) {
-        potionsPer100Kills = Math.max(potionsPer100Kills, 15);
-      }
+      if (combat.hitsToKill >= 3) potionsPer100Kills = Math.max(potionsPer100Kills, 40);
+      else if (combat.hitsToKill === 2) potionsPer100Kills = Math.max(potionsPer100Kills, 15);
 
-      // Loot & Economics calculation (aligned with in-game Hunt Analyzer):
       let expectedLootValuePerKill = 0;
       const dropsBreakdown: Array<{ name: string; chance: number; avgQty: number; unitPrice: number; totalValue: number }> = [];
-
-      if (target.loot && Array.isArray(target.loot)) {
-        for (const drop of target.loot) {
-          if (drop.chance > 0) {
-            const avgQty = (drop.min + drop.max) / 2;
-            const unitPrice = itemPriceMap.get(drop.name.toLowerCase()) || 1;
-            const expectedQty = (drop.chance / 100) * avgQty;
-            const expectedVal = expectedQty * unitPrice;
-            expectedLootValuePerKill += expectedVal;
-            dropsBreakdown.push({
-              name: drop.name,
-              chance: drop.chance,
-              avgQty,
-              unitPrice,
-              totalValue: expectedVal
-            });
-          }
+      for (const drop of target.loot || []) {
+        if (drop.chance > 0) {
+          const avgQty = (drop.min + drop.max) / 2;
+          const unitPrice = itemPriceMap.get(drop.name.toLowerCase()) || 1;
+          const expectedQty = (drop.chance / 100) * avgQty;
+          const expectedVal = expectedQty * unitPrice;
+          expectedLootValuePerKill += expectedVal;
+          dropsBreakdown.push({ name: drop.name, chance: drop.chance, avgQty, unitPrice, totalValue: expectedVal });
         }
       }
 
-      // Capturas: sesión real Venomoth ≈ 9 capturas / 425 kills → ~1 cada 47 kills
-      // (se calcula aparte; NO se suma al loot de items)
       const captureValuePerKill = (target.priceNpc || 1500) / 47;
-      const captureValuePerHour = Math.round(killsPerHour * captureValuePerKill);
-
-      // Tipo del Día: +20% loot SOLO en drops de items (no en capturas)
-      const dailyLootMult = hasDailyTypeBonus ? 1.2 : 1.0;
-      const lootWithDailyBonus = expectedLootValuePerKill * dailyLootMult;
-      // Loot/h = solo items que suelta el Pokémon (sin valor de capturas)
-      const grossLootPerHour = Math.round(killsPerHour * lootWithDailyBonus);
-
-      // Supply calibrado con Hunt Analyzer real (Venomoth 1h)
+      const captureValuePerHour = Math.round(combat.killsPerHourExact * captureValuePerKill);
+      const dailyLootMult = hasDailyTypeBonus ? 1.2 : 1;
+      const grossLootPerHour = Math.round(combat.killsPerHourExact * expectedLootValuePerKill * dailyLootMult);
       const BALL_COST_PER_KILL = 90;
       const POTION_UNIT_COST = 75;
       const potionCostPerKill = (potionsPer100Kills / 100) * POTION_UNIT_COST;
       const supplyPerKill = Math.max(BALL_COST_PER_KILL, potionCostPerKill + BALL_COST_PER_KILL);
-      const supplyCostPerHour = Math.round(killsPerHour * supplyPerKill);
-      // Neto = loot items + capturas - supply
+      const supplyCostPerHour = Math.round(combat.killsPerHourExact * supplyPerKill);
       const netProfitPerHour = Math.round(grossLootPerHour + captureValuePerHour - supplyCostPerHour);
 
-      // Safety grade for offline Sleep Mode (Zzz)
       let safetyGrade: 'safe' | 'moderate' | 'danger' = 'safe';
       let safetyLabel = '100% Seguro (0 Pociones)';
       if (potionsPer100Kills <= 3) {
-        safetyGrade = 'safe';
-        safetyLabel = 'Seguro (<3 Poc/100)';
+        safetyGrade = 'safe'; safetyLabel = 'Seguro (<3 Poc/100)';
       } else if (potionsPer100Kills <= 12) {
-        safetyGrade = 'moderate';
-        safetyLabel = 'Consumo Moderado';
+        safetyGrade = 'moderate'; safetyLabel = 'Consumo Moderado';
       } else {
-        safetyGrade = 'danger';
-        safetyLabel = 'Riesgo en Siesta Zzz';
+        safetyGrade = 'danger'; safetyLabel = 'Riesgo en Siesta Zzz';
       }
 
       return {
-        target,
-        wildLevel,
-        isLevelLocked,
-        wildMaxHp,
-        wildDef,
-        wildSpDef,
-        targetDefense,
-        effectiveBulk, // HP × Defensa relevante (métrica más precisa de "aguante")
-        bestMove: currentMove.name,
-        defenseTier,
-        defenseLabel,
-        finalDamagePerHit,
-        hitsToKill,
+        target, wildLevel, isLevelLocked,
+        wildMaxHp: combat.wildMaxHp,
+        wildDef: combat.wildDef,
+        wildSpDef: combat.wildSpDef,
+        targetDefense: combat.targetDefense,
+        effectiveBulk: combat.effectiveBulk,
+        bestMove: combat.bestMove.name,
+        defenseTier, defenseLabel,
+        finalDamagePerHit: combat.finalDamagePerHit,
+        hitsToKill: combat.hitsToKill,
         timeToKillSeconds,
-        elementalMultiplier,
-        killsPerHour,
-        killsPerMinute,
-        killsPerHourExact,
-        xpPerKill,
-        xpPerHour,
-        xpPerHourExact,
-        wildDamagePerHit,
-        totalDamageTakenPerKill,
-        potionsPer100Kills,
-        safetyGrade,
-        safetyLabel,
-        expectedLootValuePerKill,
-        dropsBreakdown,
-        grossLootPerHour,
-        supplyCostPerHour,
-        netProfitPerHour,
-        hasDailyTypeBonus
+        elementalMultiplier: combat.elementalMultiplier,
+        killsPerHour: Math.round(combat.killsPerHourExact),
+        killsPerMinute: +(combat.killsPerHourExact / 60).toFixed(1),
+        killsPerHourExact: combat.killsPerHourExact,
+        xpPerKill, xpPerHour, xpPerHourExact,
+        wildDamagePerHit, totalDamageTakenPerKill,
+        potionsPer100Kills, safetyGrade, safetyLabel,
+        expectedLootValuePerKill, dropsBreakdown,
+        grossLootPerHour, supplyCostPerHour, netProfitPerHour,
+        hasDailyTypeBonus,
+        tmKillsPerHour: Math.round(combat.tmKillsPerHourExact),
+        continuousDamagePerHit: combat.continuousDamagePerHit,
+        aoeTargetMultiplier: hasAoeBonus ? REAL_HUNT_AOE_TARGET_MULTIPLIER : 1,
+        usedAutoMove: !forcedMove
       };
     });
   }, [
-    attackerStats,
-    attackerPokemon,
-    playerLevel,
-    hasAoeBonus,
-    isVipBonus,
-    itemPriceMap,
-    dailyTypeBonus
+    attackerPokemon, playerLevel, playerTotalIv, playerQuality,
+    clanRank, clanType, hasAoeBonus, hasElementalTm, elementalTmType,
+    isVipBonus, itemPriceMap, dailyTypeBonus, selectedMoveName,
+    selectedMoveType, customMovePower, currentMove, attackerStats.pDef
   ]);
 
   // 2. Filtered and Sorted Targets for the detailed table below
@@ -901,6 +1023,69 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 
     return sorted[0];
   }, [allSimulatedTargets, selectedHuntingZone, specificHuntLevel, selectedGenerations]);
+
+  // Tierlist por elemento al estilo PokeGrid: cada especie se evalúa en la
+  // misma Hunt, con atacante normalizado a Lv de la Hunt / IV96 / Q1.00.
+  const elementTierlist = useMemo(() => {
+    const targets = POKEMON_TIER_DATA.filter((target) => target.huntLevel === tierlistHuntLevel);
+    const grouped = new Map<string, Array<{
+      pokemon: OfficialPokemon;
+      xpPerHour: number;
+      bestTarget: OfficialPokemon;
+      bestMove: string;
+      killsPerHour: number;
+    }>>();
+
+    for (const attacker of POKEMON_TIER_DATA) {
+      let best: {
+        pokemon: OfficialPokemon;
+        xpPerHour: number;
+        bestTarget: OfficialPokemon;
+        bestMove: string;
+        killsPerHour: number;
+      } | null = null;
+
+      for (const target of targets) {
+        const combat = projectHuntCombat(
+          attacker, target, tierlistHuntLevel, 96, 1, 0, 'NONE',
+          hasAoeBonus, hasElementalTm, attacker.type1
+        );
+        const baseXp = isVipBonus ? target.experience * 1.5 : target.experience;
+        const xpFactor = REAL_HUNT_LEVEL_XP_FACTORS[tierlistHuntLevel] ?? 1;
+        const speciesFactor = REAL_HUNT_SPECIES_XP_FACTORS[target.id] ?? 1;
+        const xpPerHour =
+          combat.killsPerHourExact *
+          Math.round(baseXp) *
+          XP_CALIBRATION_FACTOR *
+          xpFactor *
+          speciesFactor;
+
+        if (!best || xpPerHour > best.xpPerHour) {
+          best = {
+            pokemon: attacker,
+            xpPerHour,
+            bestTarget: target,
+            bestMove: combat.bestMove.name,
+            killsPerHour: combat.killsPerHourExact
+          };
+        }
+      }
+
+      if (!best) continue;
+      for (const type of [attacker.type1, attacker.type2].filter(Boolean) as string[]) {
+        const rows = grouped.get(type) || [];
+        rows.push(best);
+        grouped.set(type, rows);
+      }
+    }
+
+    return [...grouped.entries()]
+      .map(([type, rows]) => ({
+        type,
+        rows: rows.sort((a, b) => b.xpPerHour - a.xpPerHour).slice(0, 5)
+      }))
+      .sort((a, b) => a.type.localeCompare(b.type));
+  }, [tierlistHuntLevel, hasAoeBonus, hasElementalTm, isVipBonus]);
 
   // Next level XP curve calculation
   const xpNeededForNextLevel = useMemo(() => {
@@ -1133,6 +1318,19 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
               onChange={(e) => setClanRank(Number(e.target.value))}
               className="w-full accent-amber-500"
             />
+            <select
+              value={clanType}
+              onChange={(e) => setClanType(e.target.value)}
+              className="w-full rounded-lg bg-slate-900 border border-slate-800 px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+            >
+              <option value="NONE">Sin elemento de clan</option>
+              {typesList.filter((t) => t !== 'ALL').map((type) => (
+                <option key={type} value={type}>Clan {type}</option>
+              ))}
+            </select>
+            <span className="text-[10px] text-slate-500">
+              El +6%/rango solo entra si el tipo del atacante coincide con el clan.
+            </span>
           </div>
 
           {/* Move Selector */}
@@ -1215,9 +1413,29 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                   className="rounded accent-amber-500 h-4 w-4"
                 />
                 <span className="text-xs text-slate-300">
-                  Disco TM de Área (AoE) equipado
+                  Disco TM de Área (AoE) · densidad 1,18x
                 </span>
               </label>
+
+              <div className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <input
+                  type="checkbox"
+                  checked={hasElementalTm}
+                  onChange={(e) => setHasElementalTm(e.target.checked)}
+                  className="rounded accent-amber-500 h-4 w-4"
+                />
+                <span className="text-xs text-slate-300 whitespace-nowrap">TM elemental</span>
+                <select
+                  value={elementalTmType}
+                  onChange={(e) => setElementalTmType(e.target.value)}
+                  disabled={!hasElementalTm}
+                  className="min-w-0 flex-1 rounded bg-slate-950 border border-slate-800 px-1.5 py-1 text-[10px] text-white disabled:opacity-50"
+                >
+                  {typesList.filter((t) => t !== 'ALL').map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
 
               <label className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 cursor-pointer hover:bg-amber-500/15">
                 <input
@@ -1512,6 +1730,54 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
                 Todas (1 a 4+)
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Tierlist por elemento */}
+        <div className="rounded-xl border border-slate-800 bg-[#0d1017] p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-amber-400" />
+                Tierlist por elemento · modelo PokeGrid
+              </h4>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Perfil normalizado: atacante Nv. Hunt · IV 96 · Quality 1.00 · mejor ataque por presa.
+              </p>
+            </div>
+            <select
+              value={tierlistHuntLevel}
+              onChange={(e) => setTierlistHuntLevel(Number(e.target.value))}
+              className="rounded-lg bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs text-amber-300 font-semibold"
+            >
+              {[20, 40, 60, 80, 100, 120, 150, 200, 600].map((level) => (
+                <option key={level} value={level}>Hunt Nv. {level}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+            {elementTierlist.map((group) => (
+              <div key={group.type} className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border font-bold ${getTypeBadgeStyle(group.type)}`}>
+                    {group.type}
+                  </span>
+                  <span className="text-[9px] text-slate-500">Top 5 · XP/h</span>
+                </div>
+                <div className="space-y-1">
+                  {group.rows.map((row, index) => (
+                    <div key={row.pokemon.id} className="flex items-center gap-2 text-[10px]">
+                      <span className="w-4 text-slate-600 font-mono">{index + 1}</span>
+                      <img src={getPokemonSprite(row.pokemon.id)} alt="" className="w-5 h-5 object-contain" />
+                      <span className="font-semibold text-slate-200 truncate flex-1">{row.pokemon.name}</span>
+                      <span className="font-mono text-amber-400">{Math.round(row.xpPerHour).toLocaleString()}</span>
+                      <span className="text-slate-500">· {row.bestTarget.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
