@@ -1,0 +1,124 @@
+name: Apply real hunt cadence calibration
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'Calibrar optimizador con tiempos reales de Hunt Analyzer'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Patch optimizer
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/components/HuntXpOptimizer.tsx")
+          s = p.read_text()
+
+          normalize = "const normalize = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n"
+          addition = """\
+          /**
+           * Cadencia real de Hunt Analyzer.
+           * No usamos tramos 1/2/3+ golpes para decidir la velocidad de la hunt.
+           * Las sesiones reales aportan segundos por derrota; las muestras conocidas
+           * se conservan como referencias y el resto usa un modelo continuo calibrado.
+           */
+          const REAL_HUNT_CALIBRATIONS: Record<number, number> = {
+            49: 3600 / 425,     // Venomoth: ~425 derrotas/h
+            163: 3600 / 186,    // Xatu: ~186 derrotas/h
+            205: 3600 / 538,    // Forretress: ~538 derrotas/h
+            227: 3600 / (4100 / (9 + 55 / 60)) // Skarmory: 4.100 derrotas en 9h55m
+          };
+          const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
+          const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
+          const XP_CALIBRATION_FACTOR = 0.9953234328;
+          """
+
+          if "REAL_HUNT_CALIBRATIONS" not in s:
+              if normalize not in s:
+                  raise SystemExit("normalize marker not found")
+              s = s.replace(normalize, normalize + addition, 1)
+
+          s = s.replace(
+              "  const [huntCadenceMode, setHuntCadenceMode] = useState<'real' | 'fast'>('real'); // 'real' = 5.5s delay cueva (~373/h), 'fast' = 1.3s teórico\n",
+              "",
+              1,
+          )
+
+          old = """\
+                // Hits necesarios (discreto)
+                const hitsToKill = Math.max(1, Math.ceil(wildMaxHp / finalDamagePerHit));
+                const combatTimeSeconds = +(hitsToKill * attackIntervalSeconds).toFixed(2);
+
+                // Ciclo calibrado con 2 sesiones reales del Hunt Analyzer:
+                // - Forretress one-shot (Typhlosion lv85): ~538 kills/h → ciclo ≈ 6.7s
+                // - Xatu daño bajo 2+ golpes:              ~186 kills/h → ciclo ≈ 19.4s
+                //
+                // baseDelay bajo en one-shot; sube con más golpes (más tiempo muerto).
+                const isFastClear = hitsToKill === 1;
+                let baseDelay: number;
+                if (huntCadenceMode === 'fast') {
+                  baseDelay = isFastClear ? 1.8 : 3.5;
+                } else if (isFastClear) {
+                  baseDelay = hasAoeBonus ? 5.2 : 6.5; // ~500-550 kills/h one-shot
+                } else if (hitsToKill === 2) {
+                  baseDelay = hasAoeBonus ? 10.0 : 12.5;
+                } else {
+                  // 3+ golpes (caso Xatu débil)
+                  baseDelay = hasAoeBonus ? 14.0 : 16.5;
+                }
+                const walkDelaySeconds = baseDelay;
+                const totalCycleSeconds = Math.max(3.5, +(combatTimeSeconds + walkDelaySeconds).toFixed(2));
+                const killsPerHour = Math.round(3600 / totalCycleSeconds);
+                const killsPerMinute = +(60 / totalCycleSeconds).toFixed(1);
+                const timeToKillSeconds = +combatTimeSeconds.toFixed(1);
+          """
+          new = """\
+                // Los golpes siguen disponibles como dato interno de daño, pero YA NO
+                // deciden la cadencia mediante reglas 1/2/3+. La velocidad de la hunt
+                // parte de tiempos reales del Hunt Analyzer (derrotas / duración).
+                const hitsToKill = Math.max(1, Math.ceil(wildMaxHp / finalDamagePerHit));
+                const combatTimeSeconds = +(hitsToKill * attackIntervalSeconds).toFixed(2);
+
+                // Modelo continuo de tiempo de hunt:
+                // - Si tenemos una sesión real del objetivo, usamos directamente sus segundos/derrota.
+                // - Si no, usamos una base real (~414 kills/h) y añadimos el tiempo de combate
+                //   de forma continua, sin saltos por 1, 2 o 3+ golpes.
+                const calibratedCycleSeconds = REAL_HUNT_CALIBRATIONS[target.id];
+                const fallbackCycleSeconds = Math.max(
+                  REAL_HUNT_REFERENCE_CYCLE_SECONDS,
+                  REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
+                );
+                const totalCycleSeconds = +(calibratedCycleSeconds ?? fallbackCycleSeconds).toFixed(2);
+                const killsPerHour = Math.round(3600 / totalCycleSeconds);
+                const killsPerMinute = +(60 / totalCycleSeconds).toFixed(1);
+                const timeToKillSeconds = +(Math.max(0.6, totalCycleSeconds - REAL_HUNT_REFERENCE_WALK_SECONDS)).toFixed(1);
+          """
+          if old not in s:
+              raise SystemExit("old cadence block not found")
+          s = s.replace(old, new, 1)
+          s = s.replace("      const XP_CALIBRATION_FACTOR = 0.9950338876;\n", "", 1)
+          s = s.replace("    huntCadenceMode,\n", "", 1)
+          p.write_text(s)
+          PY
+
+          git diff --check
+          git diff -- src/components/HuntXpOptimizer.tsx
+      - name: Commit and remove one-time workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/HuntXpOptimizer.tsx .github/workflows/apply-real-hunt-calibration.yml
+          git commit -m "Calibrar optimizador con tiempos reales de Hunt Analyzer"
+          git rm .github/workflows/apply-real-hunt-calibration.yml
+          git commit --amend --no-edit
+          git push
