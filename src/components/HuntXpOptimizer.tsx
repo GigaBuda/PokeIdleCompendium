@@ -34,6 +34,7 @@ import {
 import { POKEMON_TIER_DATA, OfficialPokemon } from '../data/pokemonTierData';
 import { ITEMS_DATA } from '../data/itemsData';
 import { getHuntCalibration, installHuntCalibrationBridge } from '../data/huntCalibration';
+import { HuntCalibrationPanel } from './HuntCalibrationPanel';
 import {
   calculateStat,
   calculatePower,
@@ -366,6 +367,8 @@ const SpeciesSelect: React.FC<{ value: number; onChange: (id: number) => void }>
   };
 
   return (
+      <HuntCalibrationPanel />
+
     <div ref={wrapRef} className="relative">
       <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
       <input
