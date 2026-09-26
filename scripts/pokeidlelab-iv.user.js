@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.10
+// @version      1.0.11
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -69,13 +69,13 @@ document.body.appendChild(p);
 
 function render(p){
 const d=calc(p),el=document.getElementById("pil-content"),box=document.getElementById(CFG.panelId);
-iffunction findVisibleTooltip(){
-const selectors=['.inv-tip','[role="tooltip"]','[class*="tooltip"]','[class*="popover"]'];
+function findVisibleTooltip(){
+const selectors=['[role="tooltip"]','[class*="tooltip"]','[class*="popover"]','.inv-tip'];
 const candidates=[];
 for(const sel of selectors){try{document.querySelectorAll(sel).forEach(x=>candidates.push(x))}catch{}}
 const visible=candidates.filter(t=>{
 const s=getComputedStyle(t),r=t.getBoundingClientRect(),txt=(t.innerText||"").trim();
-return s.display!=="none"&&s.visibility!=="hidden"+""&&+s.opacity>0&&r.width>0&&r.height>0&&txt.length>0;
+return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0&&txt.length>0&&t.tagName!=="BUTTON"&&!t.closest('button,[role="button"]');
 });
 visible.sort((a,b)=>b.getBoundingClientRect().width*b.getBoundingClientRect().height-a.getBoundingClientRect().width*a.getBoundingClientRect().height);
 return visible.find(t=>{const tx=norm(t.innerText||"");return creatures.some(c=>tx.includes(norm(c.name)))})||null;
