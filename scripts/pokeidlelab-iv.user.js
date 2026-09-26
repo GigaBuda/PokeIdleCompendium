@@ -18,7 +18,7 @@ function calc(p){const c=creatures.find(x=>norm(x.name)===norm(p.name)),stats=p.
 function panel(){
 if(document.getElementById(CFG.panelId))return;
 const s=document.createElement("style");
-s.textContent=\`
+s.textContent=`
 #\${CFG.panelId}{position:fixed;z-index:2147483647;top:0;right:10px;width:555px;max-height:calc(100vh - 2px);overflow:auto;background:#0d1219;color:#eef3f8;border:1px solid #ff3b20;border-top-width:2px;border-radius:10px;box-shadow:0 22px 65px rgba(0,0,0,.72);font:12px Arial,sans-serif;display:none}
 #\${CFG.panelId} *{box-sizing:border-box}
 #\${CFG.panelId} .pil-body{padding:0 9px 8px}
@@ -59,7 +59,7 @@ s.textContent=\`
 #\${CFG.panelId} .pil-power{color:#ff9b2f;font-weight:900}
 #\${CFG.panelId} .pil-footer{display:flex;justify-content:space-between;color:#788492;font-size:10px;padding:7px 1px 0}
 @media(max-width:700px){#\${CFG.panelId}{width:calc(100vw - 8px);right:4px}.pil-grid{grid-template-columns:repeat(2,1fr)}.pil-top{grid-template-columns:repeat(2,1fr)}}
-\`;
+`;
 document.head.appendChild(s);
 const p=document.createElement("div");
 p.id=CFG.panelId;
