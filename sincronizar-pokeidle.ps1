@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 # Repositorio publico de PokeIdleCompendium.
-$repoZip = "https://github.com/GigaBuda/PokeIdleCompendium/archive/refs/heads/main.zip"
+$repoZip = "https://github.com/GigaBuda/PokeIdleLab/archive/refs/heads/main.zip"
 $repo = $PSScriptRoot
 
 $tempRoot = Join-Path $env:TEMP ("PokeIdleSync_" + [guid]::NewGuid().ToString("N"))
