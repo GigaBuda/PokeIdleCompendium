@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.19
+// @version      1.0.20
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -33,7 +33,7 @@ const s=document.createElement("style");
 s.textContent=`
 #${CFG.panelId}{position:fixed;z-index:2147483647;top:50%;left:50%;transform:translate(-50%,-50%);width:min(760px,calc(100vw - 20px));height:min(820px,calc(100vh - 20px));min-width:560px;min-height:520px;max-width:calc(100vw - 12px);max-height:calc(100vh - 12px);overflow:hidden;resize:both;background:linear-gradient(180deg,#10262b 0%,#0c1c20 52%,#111d1c 100%);color:#dce9e4;border:1px solid #b29a38;border-radius:7px;box-shadow:0 18px 50px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 0 1px rgba(0,0,0,.45);font:12px Arial,sans-serif;display:none}
 #${CFG.panelId} *{box-sizing:border-box}
-#${CFG.panelId} .jp-wrap{padding:9px 12px 10px;height:100%;overflow:auto;scrollbar-width:thin;scrollbar-color:#3d5a57 #0b1718}
+#${CFG.panelId} .pa-topbar{height:34px;margin:-9px -12px 8px;position:relative;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#10252a,#0a181c);border-bottom:1px solid #8f7a32;box-shadow:0 2px 8px rgba(0,0,0,.45);color:#e4c84b;font-size:12px;font-weight:900;letter-spacing:.15px}#${CFG.panelId} .pa-topbar:before,#${CFG.panelId} .pa-topbar:after{content:"";position:absolute;top:8px;width:12px;height:12px;background:#55e6d3;border:1px solid #a8f7ed;transform:rotate(45deg);box-shadow:0 0 7px rgba(85,230,211,.45)}#${CFG.panelId} .pa-topbar:before{left:-6px}#${CFG.panelId} .pa-topbar:after{right:-6px}#${CFG.panelId} .pa-title{display:flex;align-items:center;gap:5px}#${CFG.panelId} .pa-title-icon{font-size:11px;color:#e4c84b}#${CFG.panelId} .pa-close{position:absolute;right:9px;top:7px;width:20px;height:20px;border:0;background:transparent;color:#8fa29f;font-size:16px;line-height:18px;cursor:pointer}#${CFG.panelId} .pa-close:hover{color:#fff}#${CFG.panelId} .pa-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:0 0 8px}#${CFG.panelId} .pa-tab{height:25px;border:1px solid #29474a;border-radius:4px;background:linear-gradient(180deg,#163139,#11272d);color:#9bb0ad;font-size:9px;font-weight:800;text-align:center;line-height:23px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}#${CFG.panelId} .pa-tab:first-child{color:#aebeba}#${CFG.panelId} .jp-wrap{padding:9px 12px 10px;height:100%;overflow:auto;scrollbar-width:thin;scrollbar-color:#3d5a57 #0b1718}
 #${CFG.panelId} .jp-head{display:grid;grid-template-columns:205px 1fr;gap:10px;align-items:stretch;padding-bottom:8px;border-bottom:1px solid #526b68}
 #${CFG.panelId} .jp-visual{height:160px;border-radius:5px;position:relative;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 48%,rgba(55,118,108,.18),transparent 48%),linear-gradient(145deg,#142b30,#0b181c)}
 #${CFG.panelId} .jp-visual:before{content:"";position:absolute;width:165px;height:31px;bottom:12px;border:2px solid #b8a03b;border-radius:50%;box-shadow:0 0 10px rgba(205,178,57,.42),inset 0 0 8px rgba(205,178,57,.18)}
@@ -82,7 +82,7 @@ s.textContent=`
 `;
 document.head.appendChild(s);
 const p=document.createElement("div");p.id=CFG.panelId;
-p.innerHTML='<div class="jp-wrap" id="pil-content"></div>';
+p.innerHTML='<div class="jp-wrap"><div class="pa-topbar"><div class="pa-title"><span class="pa-title-icon">▥</span><span>Pokemon Analyzer</span></div><button class="pa-close" type="button" data-panel-close>×</button></div><div class="pa-tabs"><div class="pa-tab">⚒ Reducir</div><div class="pa-tab">◉ Drops</div><div class="pa-tab">♨ Comparar</div></div><div id="pil-content"></div></div>';
 document.body.appendChild(p);
 }
 function moveList(c){
@@ -141,7 +141,7 @@ const bars=Object.keys(CFG.statLabels).map(k=>`<div class="jp-field" style="grid
 const sprite=d.spriteSrc||"";
 el.innerHTML=`<div class="jp-head"><div class="jp-visual"><img class="jp-sprite" src="${esc(sprite)}" alt="${esc(d.name)}"></div><div class="jp-info"><div class="jp-title-row"><div class="jp-name">${esc(d.name)}</div><div class="jp-id">#${String(c.id??"").padStart(4,"0")}</div></div><span class="jp-type">${esc(type)}</span><div class="jp-meta"><div class="jp-meta-box"><span class="jp-label">Nivel</span><span class="jp-value">${d.level}</span></div><div class="jp-meta-box"><span class="jp-label">Calidad</span><span class="jp-value">${d.quality.toFixed(2).replace(".",",")}</span></div><div class="jp-meta-box"><span class="jp-label">IV Total</span><span class="jp-value" style="color:#55e6d3">${d.total}<span class="jp-muted">/192</span></span></div><div class="jp-meta-box"><span class="jp-label">Poder estimado</span><span class="jp-value" style="color:#f1c644">${Math.round(d.power)}</span></div></div></div><div class="jp-actions"><button class="jp-btn" data-copy title="Copiar">⧉</button><button class="jp-btn" data-close title="Cerrar">×</button></div></div><div class="jp-rating"><div class="jp-gauge" style="--score:${d.pct}"><span>${Math.round(d.pct)}%</span></div><div><div class="jp-rating-title">${rating}</div><div class="jp-rating-sub">Posee atributos equilibrados para uso general.</div></div></div><div class="jp-section">ESTADÍSTICAS / IV <span class="jp-muted">(${d.pct.toFixed(1)}% · <span class="jp-accent">${qualityLabel} ×${d.quality.toFixed(2)}</span>)</span></div><div class="jp-grid">${stats}</div><div class="jp-section">HABILIDADES</div><div class="jp-moves">${movesHtml}</div><div class="jp-footer"><span>Arrastra la esquina inferior derecha para cambiar el tamaño · Poder en el juego: <b>${d.powerGame||Math.round(d.power)}</b></span><span>PokeIdleLab IV Calculator · v1.0.19</span></div>`;
 el.querySelectorAll("[data-stat]").forEach(i=>i.addEventListener("input",()=>{if(current){current.actuals[i.dataset.stat]=Number(i.value)||0;render(current)}}));
-el.querySelector("[data-close]")?.addEventListener("click",()=>{box.style.display="none"});
+el.querySelector("[data-close]")?.addEventListener("click",()=>{box.style.display="none"});box.querySelector("[data-panel-close]")?.addEventListener("click",()=>{box.style.display="none"});
 el.querySelector("[data-copy]")?.addEventListener("click",async()=>{const t=d.name+" · Nv "+d.level+" · IV "+d.total+"/192 · Calidad "+d.quality.toFixed(2)+" · Poder "+Math.round(d.power);try{await navigator.clipboard?.writeText(t)}catch{}});
 box.style.display="block";box.scrollTop=0;box.querySelector(".jp-wrap")?.scrollTo(0,0);
 const saved=localStorage.getItem(CFG.storageKey);if(saved){try{const z=JSON.parse(saved);if(z.w&&z.h){box.style.width=Math.max(560,Math.min(innerWidth-12,z.w))+"px";box.style.height=Math.max(520,Math.min(innerHeight-12,z.h))+"px"}}catch{}}
