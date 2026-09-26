@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.21
+// @version      1.0.22
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -90,45 +90,37 @@ const src=c?.moves||c?.attacks||c?.skills||c?.learnset||[];
 const arr=Array.isArray(src)?src:Object.values(src||{});
 return arr.map((m,i)=>typeof m==="string"?{name:m,level:null,type:"NORMAL",power:null}:{name:m?.name||m?.move||m?.attack||m?.id||"Move "+(i+1),level:m?.level??m?.learnLevel??m?.unlockLevel??null,type:m?.type||m?.element||"NORMAL",power:m?.power??m?.damage??null}).filter(m=>m.name).sort((a,b)=>(a.level??999)-(b.level??999));
 }
-const speciesCache=new Map(),officialDexNumbers=new Map();let officialDexLoaded=false;async function loadOfficialDexNumbers(){if(officialDexLoaded)return;try{const r=await fetch("/pokepedia/pokemon",{cache:"force-cache"});if(r.ok){const html=await r.text(),doc=new DOMParser().parseFromString(html,"text/html");for(const a of doc.querySelectorAll('a[href*="/pokepedia/pokemon/"]')){const t=(a.innerText||a.textContent||"").replace(/\s+/g," ").trim(),m=t.match(/#(\d{1,4})/);if(m){const href=(a.getAttribute("href")||"").match(/\/pokemon\/([^/?#]+)/i);if(href)officialDexNumbers.set(norm(href[1].replace(/-/g," ")),String(+m[1]).padStart(3,"0"));}}}}catch{}officialDexLoaded=true}
-function slugifyName(n){
-const raw=String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/shiny/g,"").trim();
-const map={"nidoran male":"nidoran-m","nidoran female":"nidoran-f","mr mime":"mr-mime","mr rime":"mr-rime","mime jr":"mime-jr","type null":"type-null","ho oh":"ho-oh","porygon z":"porygon-z","jangmo o":"jangmo-o","hakamo o":"hakamo-o","kommo o":"kommo-o","tapu koko":"tapu-koko","tapu lele":"tapu-lele","tapu bulu":"tapu-bulu","tapu fini":"tapu-fini"};
-const cleaned=raw.replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g," ").trim();
-return map[cleaned]||cleaned.replace(/\s+/g,"-");
-}
+const speciesCache=new Map(),officialDexNumbers=new Map();let officialDexLoaded=false;
+async function loadOfficialDexNumbers(){if(officialDexLoaded)return;try{const r=await fetch("/pokepedia/pokemon",{cache:"force-cache"});if(r.ok){const html=await r.text(),doc=new DOMParser().parseFromString(html,"text/html");for(const a of doc.querySelectorAll('a[href*="/pokepedia/pokemon/"]')){const t=(a.innerText||a.textContent||"").replace(/\s+/g," ").trim(),m=t.match(/#(\d{1,4})/),href=(a.getAttribute("href")||"").match(/\/pokemon\/([^/?#]+)/i);if(m&&href)officialDexNumbers.set(norm(href[1].replace(/-/g," ")),String(+m[1]).padStart(3,"0"));}}}catch{}officialDexLoaded=true}
+function slugifyName(n){const raw=String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/shiny/g,"").trim();const map={"nidoran male":"nidoran-m","nidoran female":"nidoran-f","mr mime":"mr-mime","mr rime":"mr-rime","mime jr":"mime-jr","type null":"type-null","ho oh":"ho-oh","porygon z":"porygon-z","jangmo o":"jangmo-o","hakamo o":"hakamo-o","kommo o":"kommo-o","tapu koko":"tapu-koko","tapu lele":"tapu-lele","tapu bulu":"tapu-bulu","tapu fini":"tapu-fini"};const cleaned=raw.replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g," ").trim();return map[cleaned]||cleaned.replace(/\s+/g,"-")}
 async function hydratePokemon(p){
-const key=norm(p.name);if(speciesCache.has(key2)){Object.assign(p,speciesCache.get(key2));return p}
-const extra={baseFallback:{}};
+const key=norm(p.name);
+if(speciesCache.has(key)){Object.assign(p,speciesCache.get(key));return p}
+const extra={baseFallback:{},spriteSrc:""};
+try{await loadOfficialDexNumbers();extra.dexNumber=officialDexNumbers.get(key)||""}catch{}
 try{
-let apiName=slugifyName(p.name);
+const page=await fetch("/pokepedia/pokemon/"+slugifyName(p.name),{cache:"force-cache"});
+if(page.ok){
+const doc=new DOMParser().parseFromString(await page.text(),"text/html"),wanted=norm(p.name);
+const hit=[...doc.querySelectorAll("img")].find(im=>{const alt=norm(im.getAttribute("alt")||""),src=im.getAttribute("src")||im.getAttribute("data-src")||"";return src&&alt&&(alt.includes(wanted)||wanted.includes(alt))});
+if(hit){const src=hit.getAttribute("src")||hit.getAttribute("data-src")||"";if(src)extra.spriteSrc=new URL(src,location.origin).href}
+}
+}catch{}
+try{
+const apiName=slugifyName(p.name);
 let r=await fetch("https://pokeapi.co/api/v2/pokemon/"+encodeURIComponent(apiName),{cache:"force-cache"});
 if(!r.ok&&apiName.includes("-"))r=await fetch("https://pokeapi.co/api/v2/pokemon/"+encodeURIComponent(apiName.split("-")[0]),{cache:"force-cache"});
 if(r.ok){
-const data=await r.json();
-extra.pokeApiId=data.id;
-extra.pokeApiTypes=(data.types||[]).map(t=>t.type?.name).filter(Boolean);
-for(const item of data.stats||[]){
-const keyName=item.stat?.name;
-const value=Number(item.base_stat);
-if(!Number.isFinite(value))continue;
-if(keyName==="hp")extra.baseFallback.hp=value;
-else if(keyName==="attack")extra.baseFallback.atk=value;
-else if(keyName==="defense")extra.baseFallback.def=value;
-else if(keyName==="special-attack")extra.baseFallback.spa=value;
-else if(keyName==="special-defense")extra.baseFallback.spd=value;
-else if(keyName==="speed")extra.baseFallback.vel=value;
-}
-const spriteSet=data.sprites||{};
-extra.spriteSrc=(data.id?("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/"+data.id+".gif"):"")
-||spriteSet.other?.["official-artwork"]?.front_default
-||spriteSet.front_default
-||"";
+const data=await r.json();extra.pokeApiId=data.id;
+for(const item of data.stats||[]){const n=item.stat?.name,v=Number(item.base_stat);if(!Number.isFinite(v))continue;if(n==="hp")extra.baseFallback.hp=v;else if(n==="attack")extra.baseFallback.atk=v;else if(n==="defense")extra.baseFallback.def=v;else if(n==="special-attack")extra.baseFallback.spa=v;else if(n==="special-defense")extra.baseFallback.spd=v;else if(n==="speed")extra.baseFallback.vel=v}
+if(!extra.spriteSrc)extra.spriteSrc="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/"+data.id+".gif";
 }
 }catch{}
+if(!extra.dexNumber&&p.creature?.id)extra.dexNumber=String(p.creature.id).padStart(3,"0");
 if(!extra.spriteSrc&&p.creature?.id)extra.spriteSrc="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/"+p.creature.id+".gif";
-speciesCache.set(key2,extra);Object.assign(p,extra);return p
+speciesCache.set(key,extra);Object.assign(p,extra);return p
 }
+
 function render(p){
 const d=calc(p),el=document.getElementById("pil-content"),box=document.getElementById(CFG.panelId);if(!el||!box)return;
 const c=d.creature||{},type=(c.type||c.element||c.primaryType||"POKÉMON").toString().toUpperCase();
