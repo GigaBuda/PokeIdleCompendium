@@ -104,3 +104,4 @@ document.addEventListener("pointerover",e=>{scanSoon()},true);
 setInterval(scan,250);
 panel();
 load();
+})();
