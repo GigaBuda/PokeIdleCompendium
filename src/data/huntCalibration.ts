@@ -113,7 +113,8 @@ export function recordHuntCalibration(input: Omit<HuntCalibrationSample, 'id' | 
 
   if (!Number.isFinite(kills) || !Number.isFinite(elapsedSeconds)) return null;
   if (kills < MIN_SESSION_KILLS || elapsedSeconds < MIN_SESSION_SECONDS) return null;
-  if (input.targetId <= 0) return null;
+  if (!Number.isInteger(input.targetId) || input.targetId <= 0) return null;
+  if (!Number.isInteger(Number(input.huntLevel)) || Number(input.huntLevel) < 0) return null;
 
   const sample: HuntCalibrationSample = {
     ...input,
@@ -201,6 +202,7 @@ export function installHuntCalibrationBridge(): () => void {
   const handler = (event: MessageEvent<PokeGridCalibrationMessage>) => {
     const data = event.data;
     if (!data || data.type !== 'POKEGRID_HUNT_CALIBRATION') return;
+    if (event.source !== window || event.origin !== window.location.origin) return;
     recordHuntCalibration({
       targetId: data.targetId,
       huntLevel: data.huntLevel || 0,
