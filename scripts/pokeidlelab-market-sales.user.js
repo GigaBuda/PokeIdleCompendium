@@ -6,6 +6,8 @@
 // @match        https://poke.idleworld.online/*
 // @grant        none
 // @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/GigaBuda/PokeIdleLab/main/scripts/pokeidlelab-market-sales.user.js
+// @downloadURL  https://raw.githubusercontent.com/GigaBuda/PokeIdleLab/main/scripts/pokeidlelab-market-sales.user.js
 // ==/UserScript==
 
 (function () {
