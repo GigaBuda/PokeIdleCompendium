@@ -69,27 +69,45 @@ document.body.appendChild(p);
 
 function render(p){
 const d=calc(p),el=document.getElementById("pil-content"),box=document.getElementById(CFG.panelId);
+if(!el||!box)return;
+const type=(d.creature?.type||d.creature?.element||d.creature?.primaryType||"POKÉMON").toString().toUpperCase();
+const sprite=d.spriteSrc||"";
+const cards=Object.keys(CFG.statLabels).map(k=>`<div class="pil-stat" style="--c:${CFG.colors[k]}"><div class="pil-stat-head"><span class="pil-stat-name">${CFG.statLabels[k]}</span><span class="pil-iv">${d.ivs[k].toFixed(1)}/32</span></div><div class="pil-bar"><i style="--w:${Math.max(0,Math.min(100,d.ivs[k]/32*100))}%"></i></div><input class="pil-input" data-stat="${k}" value="${d.stats[k]??""}" type="number"><div class="pil-base">base ${d.bases[k]||"?"}</div></div>`).join("");
+const hero=`<div class="pil-hero"><img class="pil-sprite" src="${esc(sprite)}" alt="${esc(d.name)}"><div><div class="pil-name-row"><div class="pil-name">${esc(d.name)}</div><div class="pil-id">${d.creature?.id?"#"+String(d.creature.id).padStart(4,"0"):""}</div></div><span class="pil-type">${esc(type)}</span></div><div class="pil-actions"><button class="pil-action" data-pil-copy title="Copiar">⧉</button><button class="pil-action" data-pil-close title="Cerrar">×</button></div></div>`;
+const top=`<div class="pil-top"><div class="pil-box"><div class="pil-label">Nivel</div><div class="pil-value">${d.level}</div></div><div class="pil-box"><div class="pil-label">Calidad</div><div class="pil-value">${d.quality.toFixed(2)}</div></div><div class="pil-box"><div class="pil-label">IV Total</div><div class="pil-value">${d.total}/192</div></div><div class="pil-box"><div class="pil-label">Poder</div><div class="pil-value">${Math.round(d.power)}</div></div></div>`;
+const rating=`<div class="pil-rating"><div class="pil-ring" style="--p:${d.pct}"><span>${Math.round(d.pct)}%</span></div><div><div class="pil-rating-title">Calidad IV estimada</div><div class="pil-rating-sub">${d.total}/192 · Poder ${Math.round(d.power)}</div></div></div>`;
+el.innerHTML=hero+top+rating+`<div class="pil-section">Atributos e IV por stat</div><div class="pil-grid">${cards}</div><div class="pil-footer"><span>Poder en el juego: <b>${d.powerGame||Math.round(d.power)}</b></span><span>PokeIdleLab IV Calculator · v1.0.11</span></div>`;
+el.querySelectorAll("[data-stat]").forEach(i=>i.addEventListener("input",()=>{if(current){current.actuals[i.dataset.stat]=Number(i.value)||0;render(current)}}));
+el.querySelector("[data-pil-close]")?.addEventListener("click",()=>{box.style.display="none"});
+el.querySelector("[data-pil-copy]")?.addEventListener("click",async()=>{const t=d.name+" · Nv "+d.level+" · IV "+d.total+"/192 · Calidad "+d.quality.toFixed(2)+" · Poder "+Math.round(d.power);try{await navigator.clipboard?.writeText(t)}catch{}});
+box.style.display="block";
+}
+
+function cleanTooltipText(tip){
+const clone=tip.cloneNode(true);
+clone.querySelectorAll("button,[role="button"],input,select,textarea,a").forEach(x=>x.remove());
+return (clone.innerText||"").trim();
+}
+
 function findVisibleTooltip(){
 const selectors=['[role="tooltip"]','[class*="tooltip"]','[class*="popover"]','.inv-tip'];
 const candidates=[];
 for(const sel of selectors){try{document.querySelectorAll(sel).forEach(x=>candidates.push(x))}catch{}}
 const visible=candidates.filter(t=>{
-const s=getComputedStyle(t),r=t.getBoundingClientRect(),txt=(t.innerText||"").trim();
-return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0&&txt.length>0&&t.tagName!=="BUTTON"&&!t.closest('button,[role="button"]');
+const s=getComputedStyle(t),r=t.getBoundingClientRect(),txt=cleanTooltipText(t);
+return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0&&txt.length>0;
 });
 visible.sort((a,b)=>b.getBoundingClientRect().width*b.getBoundingClientRect().height-a.getBoundingClientRect().width*a.getBoundingClientRect().height);
-return visible.find(t=>{const tx=norm(t.innerText||"");return creatures.some(c=>tx.includes(norm(c.name)))})||null;
+return visible.find(t=>{const tx=norm(cleanTooltipText(t));return creatures.some(c=>tx.includes(norm(c.name)))})||null;
 }
 
 function scan(){
 const tip=findVisibleTooltip();
 if(!tip)return;
-const text=tip.innerText||"",p=parse(text);
+const text=cleanTooltipText(tip),p=parse(text);
 if(!p)return;
 p.spriteSrc=tip.querySelector("img")?.currentSrc||tip.querySelector("img")?.src||"";
-if(tip!==lastPokemonTooltip||text!==lastText){
-lastPokemonTooltip=tip;lastText=text;current=p;render(p);
-}
+if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p)}
 }
 
 function scanSoon(){
@@ -98,9 +116,10 @@ setTimeout(scan,40);
 setTimeout(scan,120);
 setTimeout(scan,250);
 }
+
 new MutationObserver(scanSoon).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});
-document.addEventListener("mouseover",e=>{scanSoon()},true);
-document.addEventListener("pointerover",e=>{scanSoon()},true);
+document.addEventListener("mouseover",e=>{if(e.target?.closest?.('button,[role="button"]'))return;scanSoon()},true);
+document.addEventListener("pointerover",e=>{if(e.target?.closest?.('button,[role="button"]'))return;scanSoon()},true);
 setInterval(scan,250);
 panel();
 load();
