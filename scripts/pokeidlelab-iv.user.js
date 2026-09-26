@@ -6,6 +6,8 @@
 // @match        https://poke.idleworld.online/*
 // @grant        none
 // @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/GigaBuda/PokeIdleLab/main/scripts/pokeidlelab-iv.user.js
+// @downloadURL  https://raw.githubusercontent.com/GigaBuda/PokeIdleLab/main/scripts/pokeidlelab-iv.user.js
 // ==/UserScript==
 (function(){"use strict";
 const CFG={panelId:"pokeidlelab-iv-panel",storageKey:"pokeidlelab-iv-panel-state",maxIV:32,maxTotal:192,exponents:{hp:.95,atk:.8,def:.8,spa:.8,spd:.8,vel:.95},statLabels:{hp:"HP",atk:"ATK",def:"DEF",spa:"SpA",spd:"SpD",vel:"VEL"},colors:{hp:"#55e6d3",atk:"#ff8c42",def:"#ffd84f",spa:"#5ca9ff",spd:"#55e6d3",vel:"#ff70b8"}};
