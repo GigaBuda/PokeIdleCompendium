@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.27
+// @version      1.0.28
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -139,4 +139,14 @@ if(!box.dataset.resizeBound){box.dataset.resizeBound="1";new ResizeObserver(()=>
 }
 function scan(){const tips=[...document.querySelectorAll(".inv-tip")].filter(t=>{const s=getComputedStyle(t),r=t.getBoundingClientRect();return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0});const tip=tips.find(t=>{const tx=t.innerText||"";return !/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(tx)&&!/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(tx)})||tips[0];if(!tip){return}const text=tip.innerText||"";if(/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(text)||/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(text)){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}const p=parse(text,tip);if(!p){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}p.spriteSrc=findSpriteSrc(tip)||"";if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p);hydratePokemon(p).then(()=>{if(current===p){p.spriteSrc=p.spriteSrc||findSpriteSrc(tip);render(p)}})}}
 new MutationObserver(scan).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});document.addEventListener("mouseover",e=>{if(e.target.closest?.(".inv-tip"))setTimeout(scan,0)},true);setInterval(scan,250);panel();load();
+
+const POKEIDLELAB_UI_SCALE={small:.9,medium:1,large:1.1};let pokeidlelabUiMode=null,pokeidlelabUiScale=1;
+function pokeidlelabUiModeOf(v){const s=String(v||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();if(/^(pequeno|pequena|small|sm|s)$/.test(s))return"small";if(/^(medio|media|medium|md|m|normal|default)$/.test(s))return"medium";if(/^(grande|large|lg|l)$/.test(s))return"large";return null}
+function pokeidlelabUiApply(mode){const box=document.getElementById(CFG.panelId),scale=POKEIDLELAB_UI_SCALE[mode];if(!box||!scale||mode===pokeidlelabUiMode)return;const r=box.getBoundingClientRect(),factor=scale/pokeidlelabUiScale,maxW=Math.max(560,innerWidth-12),maxH=Math.max(520,innerHeight-12);box.style.width=Math.round(Math.max(560,Math.min(maxW,r.width*factor)))+"px";box.style.height=Math.round(Math.max(520,Math.min(maxH,r.height*factor)))+"px";pokeidlelabUiMode=mode;pokeidlelabUiScale=scale}
+function pokeidlelabUiSelectedMode(){for(const sel of document.querySelectorAll("select")){const m=pokeidlelabUiModeOf(sel.value);if(m)return m}for(const el of document.querySelectorAll("button,[role=button],[role=tab],label")){const m=pokeidlelabUiModeOf((el.textContent||"").replace(/\s+/g," "));if(!m)continue;const c=String(el.className||"");if(el.getAttribute("aria-pressed")==="true"||el.getAttribute("aria-selected")==="true"||/\b(active|selected|current|checked|seleccionad[oa])\b/i.test(c))return m}return null}
+function pokeidlelabUiScan(){const m=pokeidlelabUiSelectedMode();if(m)pokeidlelabUiApply(m)}
+document.addEventListener("click",e=>{const el=e.target?.closest?.("button,[role=button],[role=tab],label,option"),m=pokeidlelabUiModeOf(el?.textContent);if(m){pokeidlelabUiApply(m);setTimeout(pokeidlelabUiScan,80);setTimeout(pokeidlelabUiScan,300)}},true);
+document.addEventListener("change",e=>{const el=e.target,m=pokeidlelabUiModeOf(el?.value)||pokeidlelabUiModeOf(el?.selectedOptions?.[0]?.textContent);if(m){pokeidlelabUiApply(m);setTimeout(pokeidlelabUiScan,80)}},true);
+new MutationObserver(pokeidlelabUiScan).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:["class","aria-pressed","aria-selected","value"]});setInterval(pokeidlelabUiScan,700);setTimeout(pokeidlelabUiScan,500);setTimeout(pokeidlelabUiScan,1500);
+window.addEventListener("resize",()=>{const box=document.getElementById(CFG.panelId);if(!box)return;const maxW=Math.max(560,innerWidth-12),maxH=Math.max(520,innerHeight-12);if(box.offsetWidth>maxW)box.style.width=maxW+"px";if(box.offsetHeight>maxH)box.style.height=maxH+"px"});
 })();
