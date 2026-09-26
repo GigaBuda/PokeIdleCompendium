@@ -90,7 +90,7 @@
 
   function showToast(message) {
     const now = Date.now();
-    const signature = String(message || "").replace(/\\s+/g, " ").trim().slice(0, 300);
+    const signature = String(message || "").replace(/\s+/g, " ").trim().slice(0, 300);
 
     if (!signature || signature === lastSignature && now - lastAt < CFG.cooldown) return;
     lastSignature = signature;
@@ -122,12 +122,12 @@
 
   function isMarketContext(node) {
     const text = String(node?.textContent || "");
-    if (/global\\s+market/i.test(text)) return true;
+    if (/global\s+market/i.test(text)) return true;
 
     let el = node instanceof Element ? node : node?.parentElement;
     for (let i = 0; el && i < 6; i++, el = el.parentElement) {
       const t = String(el.textContent || "");
-      if (/global\\s+market/i.test(t)) return true;
+      if (/global\s+market/i.test(t)) return true;
       if (/market|listing|listing details|my listings|history|requests/i.test(
         String(el.className || "") + " " + String(el.id || "")
       )) return true;
@@ -137,17 +137,17 @@
   }
 
   function looksLikeSale(text) {
-    const t = String(text || "").replace(/\\s+/g, " ").trim();
+    const t = String(text || "").replace(/\s+/g, " ").trim();
     if (!t || t.length > 500) return false;
 
     const sale = /(?:sold|sale completed|successfully sold|item sold|listing sold|vendido|venta completada|venta realizada|vendido correctamente)/i.test(t);
     if (!sale) return false;
 
-    return /(?:global\\s+market|market|listing|item|pokemon|pokémon|dollars|coins|dinero|precio|price)/i.test(t) || sale;
+    return /(?:global\s+market|market|listing|item|pokemon|pokémon|dollars|coins|dinero|precio|price)/i.test(t);
   }
 
   function cleanMessage(text) {
-    const t = String(text || "").replace(/\\s+/g, " ").trim();
+    const t = String(text || "").replace(/\s+/g, " ").trim();
     const match = t.match(/(?:sold|sale completed|successfully sold|item sold|listing sold|vendido|venta completada|venta realizada|vendido correctamente).{0,220}/i);
     return match ? match[0].trim() : t.slice(0, 220);
   }
@@ -168,7 +168,7 @@
 
     for (const el of candidates) {
       const text = el.textContent || "";
-      if (!looksLikeSale(text)) continue;
+      if (!isMarketContext(el) || !looksLikeSale(text)) continue;
 
       // Evita disparar por todo el panel del market: solo avisamos por
       // nodos pequeños que parezcan una notificación/resultado reciente.
