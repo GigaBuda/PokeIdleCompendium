@@ -245,15 +245,11 @@ function projectHuntCombat(
     REAL_HUNT_REFERENCE_CYCLE_SECONDS,
     REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
   );
-  const combatDeltaSeconds =
-    combatTimeSeconds - REAL_HUNT_REFERENCE_COMBAT_SECONDS;
-  const calibratedBaseCycle =
-    calibratedCycleSeconds !== undefined
-      ? calibratedCycleSeconds
-      : fallbackCycleSeconds;
   const normalCycleSeconds = Math.max(
     0.6,
-    calibratedBaseCycle + combatDeltaSeconds
+    calibratedCycleSeconds !== undefined
+      ? calibratedCycleSeconds
+      : fallbackCycleSeconds
   );
   const aoeTargetMultiplier = hasAoeBonus
     ? REAL_HUNT_AOE_TARGET_MULTIPLIER
@@ -422,6 +418,13 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
 }) => {
   useEffect(() => installHuntCalibrationBridge(), []);
 
+  const [calibrationVersion, setCalibrationVersion] = useState(0);
+  useEffect(() => {
+    const onCalibrationUpdated = () => setCalibrationVersion((v) => v + 1);
+    window.addEventListener('pokeidlelab:calibration-updated', onCalibrationUpdated);
+    return () => window.removeEventListener('pokeidlelab:calibration-updated', onCalibrationUpdated);
+  }, []);
+
   // Attacker configuration (calibrated with user Typhlosion profile by default)
   const [selectedAttackerId, setSelectedAttackerId] = useState<number>(
     initialPokemon?.id || (savedTeam.length > 0 ? savedTeam[0].id : 157) // Default to Typhlosion
@@ -433,8 +436,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
   const [clanType, setClanType] = useState<string>('NONE');
   const [hasAoeBonus, setHasAoeBonus] = useState<boolean>(false); // Sin TM de área por defecto
   const [hasElementalTm, setHasElementalTm] = useState<boolean>(false);
-  const [isVipBonus, setIsVipBonus] = useState<boolean>(true); // Cuenta VIP / Boost (+50% EXP como en sesión de 136k XP/h)
-  const [hasDoubleXpEvent, setHasDoubleXpEvent] = useState<boolean>(true); // Evento activo: XP x2 para Entrenador y Pokémon
+  const [isVipBonus, setIsVipBonus] = useState<boolean>(false); // VIP desactivado por defecto; el usuario lo activa explícitamente.
+  const [hasDoubleXpEvent, setHasDoubleXpEvent] = useState<boolean>(false); // Evento de doble XP desactivado por defecto.
 
   // Level Restriction Rule: Player level restricts hunts accessible
   const [restrictToPlayerLevel, setRestrictToPlayerLevel] = useState<boolean>(true);
@@ -823,7 +826,8 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
     attackerPokemon, playerLevel, playerTotalIv, playerQuality,
     clanRank, clanType, hasAoeBonus, hasElementalTm, elementalTmType,
     isVipBonus, hasDoubleXpEvent, itemPriceMap, dailyTypeBonus, selectedMoveName,
-    selectedMoveType, customMovePower, currentMove, attackerStats.pDef
+    selectedMoveType, customMovePower, currentMove, attackerStats.pDef,
+    calibrationVersion
   ]);
 
   // 2. Filtered and Sorted Targets for the detailed table below
