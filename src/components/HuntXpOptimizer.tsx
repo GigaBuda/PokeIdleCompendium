@@ -79,7 +79,6 @@ const normalize = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u03
 const REAL_HUNT_REFERENCE_CYCLE_SECONDS = 8.70;
 const REAL_HUNT_REFERENCE_WALK_SECONDS = 7.00;
 const REAL_HUNT_REFERENCE_COMBAT_SECONDS = 0.60;
-const XP_CALIBRATION_FACTOR = 0.9953234328;
 const POKEGRID_TM_POWER = 300;
 const POKEGRID_TM_COOLDOWN_SECONDS = 10;
 const POKEGRID_TM_TARGETS = 2;
@@ -234,21 +233,30 @@ function projectHuntCombat(
     0.1,
     wildMaxHp / selected.continuousDamagePerHit
   );
-  // El tiempo real de combate debe respetar golpes completos: no podemos
-  // contar 4.2 golpes como 4.2 ataques. La Defensa del salvaje entra aquí
-  // porque determina el daño por golpe y, por tanto, los golpes necesarios.
-  const combatTimeSeconds = hitsToKill * attackIntervalSeconds;
+  // El ranking usa el tiempo continuo de combate para que pequeñas diferencias
+  // de HP/Defensa no queden ocultas por el redondeo a un número entero de golpes.
+  const combatTimeSeconds = Math.max(
+    attackIntervalSeconds,
+    continuousHitsToKill * attackIntervalSeconds
+  );
 
   const calibration = getHuntCalibration(target.id, wildLevel);
-  const calibratedCycleSeconds = calibration?.cycleSeconds;
+  // Las semillas históricas (incluida la referencia global de Hunt 150) no
+  // deben sustituir el combate específico de cada presa. Solo una muestra real
+  // del propio objetivo puede aportar una cadencia observada.
+  const realCalibratedCycleSeconds =
+    calibration?.source === 'real'
+      ? calibration.cycleSeconds
+      : undefined;
+
   const fallbackCycleSeconds = Math.max(
     REAL_HUNT_REFERENCE_CYCLE_SECONDS,
     REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
   );
   const normalCycleSeconds = Math.max(
     0.6,
-    calibratedCycleSeconds !== undefined
-      ? calibratedCycleSeconds
+    realCalibratedCycleSeconds !== undefined
+      ? realCalibratedCycleSeconds
       : fallbackCycleSeconds
   );
   const aoeTargetMultiplier = hasAoeBonus
@@ -705,16 +713,16 @@ export const HuntXpOptimizer: React.FC<HuntXpOptimizerProps> = ({
       const dailyXpMult = hasDailyTypeBonus ? 1.2 : 1;
       const vipXpMult = isVipBonus ? 1.5 : 1;
       const eventXpMult = hasDoubleXpEvent ? 2 : 1;
-      const baseXp = target.experience * vipXpMult * eventXpMult;
-      const calibration = getHuntCalibration(target.id, wildLevel);
-      const calibratedXpPerKill =
-        calibration?.xpPerKill !== undefined
-          ? calibration.xpPerKill * dailyXpMult
-          : baseXp * dailyXpMult * XP_CALIBRATION_FACTOR;
-      const xpPerKill = Math.round(calibratedXpPerKill);
+
+      // La XP por kill sale exclusivamente de la recompensa base del objetivo.
+      // En Hunt 150 la base es 13.508 XP. VIP y Evento se aplican aquí,
+      // sin calibraciones ni factores correctivos.
+      const baseXp = Math.max(0, Number(target.experience) || 0);
+      const xpPerKillExact = baseXp * vipXpMult * eventXpMult * dailyXpMult;
+      const xpPerKill = Math.round(xpPerKillExact);
       const xpPerHourExact =
         combat.killsPerHourExact *
-        calibratedXpPerKill;
+        xpPerKillExact;
       const xpPerHour = Math.round(xpPerHourExact);
 
       let defenseTier: 'fragile' | 'medium' | 'tank' = 'medium';
