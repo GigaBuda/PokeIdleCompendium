@@ -249,10 +249,11 @@ function projectHuntCombat(
       ? calibration.cycleSeconds
       : undefined;
 
-  const fallbackCycleSeconds = Math.max(
-    REAL_HUNT_REFERENCE_CYCLE_SECONDS,
-    REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds
-  );
+  // La referencia de 8.70 s es solo una muestra histórica, no un mínimo
+  // global. Si se usa como suelo, todos los objetivos con combate < 1.70 s
+  // quedan artificialmente clavados en 413.79 kills/h.
+  const fallbackCycleSeconds =
+    REAL_HUNT_REFERENCE_WALK_SECONDS + combatTimeSeconds;
   const normalCycleSeconds = Math.max(
     0.6,
     realCalibratedCycleSeconds !== undefined
