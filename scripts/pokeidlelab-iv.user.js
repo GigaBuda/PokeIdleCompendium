@@ -85,7 +85,7 @@ box.style.display="block";
 
 function cleanTooltipText(tip){
 const clone=tip.cloneNode(true);
-clone.querySelectorAll("button,[role="button"],input,select,textarea,a").forEach(x=>x.remove());
+clone.querySelectorAll('button,[role="button"],input,select,textarea,a').forEach(x=>x.remove());
 return (clone.innerText||"").trim();
 }
 
