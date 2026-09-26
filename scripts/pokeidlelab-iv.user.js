@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         PokeIdleLab IV Calculator
+// @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
 // @version      1.0.7
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
