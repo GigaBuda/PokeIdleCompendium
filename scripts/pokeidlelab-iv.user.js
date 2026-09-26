@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.17
+// @version      1.0.18
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -91,20 +91,42 @@ const arr=Array.isArray(src)?src:Object.values(src||{});
 return arr.map((m,i)=>typeof m==="string"?{name:m,level:null,type:"NORMAL",power:null}:{name:m?.name||m?.move||m?.attack||m?.id||"Move "+(i+1),level:m?.level??m?.learnLevel??m?.unlockLevel??null,type:m?.type||m?.element||"NORMAL",power:m?.power??m?.damage??null}).filter(m=>m.name).sort((a,b)=>(a.level??999)-(b.level??999));
 }
 const speciesCache=new Map();
-function slugifyName(n){return norm(n).replace(/\s+/g,"-")}
+function slugifyName(n){
+const raw=String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/shiny/g,"").trim();
+const map={"nidoran male":"nidoran-m","nidoran female":"nidoran-f","mr mime":"mr-mime","mr rime":"mr-rime","mime jr":"mime-jr","type null":"type-null","ho oh":"ho-oh","porygon z":"porygon-z","jangmo o":"jangmo-o","hakamo o":"hakamo-o","kommo o":"kommo-o","tapu koko":"tapu-koko","tapu lele":"tapu-lele","tapu bulu":"tapu-bulu","tapu fini":"tapu-fini"};
+const cleaned=raw.replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g," ").trim();
+return map[cleaned]||cleaned.replace(/\s+/g,"-");
+}
 async function hydratePokemon(p){
 const key=norm(p.name);if(speciesCache.has(key)){Object.assign(p,speciesCache.get(key));return p}
-const extra={};
+const extra={baseFallback:{}};
 try{
-const r=await fetch("/pokepedia/pokemon/"+slugifyName(p.name),{cache:"force-cache"});if(r.ok){
-const html=await r.text();const doc=new DOMParser().parseFromString(html,"text/html");const txt=(doc.body?.innerText||"").replace(/\u00a0/g," ");
-const patterns={hp:/HP\s+(\d+)/i,atk:/(?:Atk|Attack)\s+(\d+)/i,def:/(?:Def|Defense)\s+(\d+)/i,spa:/(?:Sp\.\s*A|Sp\.\s*Atk|SpA|Special Attack)\s+(\d+)/i,spd:/(?:Sp\.\s*D|Sp\.\s*Def|SpD|Special Defense)\s+(\d+)/i,vel:/(?:Speed|Velocidad)\s+(\d+)/i};
-extra.baseFallback={};for(const [k,re] of Object.entries(patterns)){const m=txt.match(re);if(m)extra.baseFallback[k]=+m[1]}
-const wanted=norm(p.name);const imgs=[...doc.querySelectorAll("img")];const hit=imgs.find(im=>{const a=norm(im.getAttribute("alt")||"");return a&&((a.includes(wanted)||wanted.includes(a)))});
-if(hit){extra.spriteSrc=hit.currentSrc||hit.getAttribute("src")||hit.getAttribute("data-src")||"";if(extra.spriteSrc&&!/^https?:\/\//i.test(extra.spriteSrc))extra.spriteSrc=new URL(extra.spriteSrc,location.origin).href}
+let apiName=slugifyName(p.name);
+let r=await fetch("https://pokeapi.co/api/v2/pokemon/"+encodeURIComponent(apiName),{cache:"force-cache"});
+if(!r.ok&&apiName.includes("-"))r=await fetch("https://pokeapi.co/api/v2/pokemon/"+encodeURIComponent(apiName.split("-")[0]),{cache:"force-cache"});
+if(r.ok){
+const data=await r.json();
+extra.pokeApiId=data.id;
+extra.pokeApiTypes=(data.types||[]).map(t=>t.type?.name).filter(Boolean);
+for(const item of data.stats||[]){
+const keyName=item.stat?.name;
+const value=Number(item.base_stat);
+if(!Number.isFinite(value))continue;
+if(keyName==="hp")extra.baseFallback.hp=value;
+else if(keyName==="attack")extra.baseFallback.atk=value;
+else if(keyName==="defense")extra.baseFallback.def=value;
+else if(keyName==="special-attack")extra.baseFallback.spa=value;
+else if(keyName==="special-defense")extra.baseFallback.spd=value;
+else if(keyName==="speed")extra.baseFallback.vel=value;
+}
+const spriteSet=data.sprites||{};
+extra.spriteSrc=(data.id?("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/"+data.id+".gif"):"")
+||spriteSet.other?.["official-artwork"]?.front_default
+||spriteSet.front_default
+||"";
 }
 }catch{}
-if(!extra.spriteSrc&&p.creature?.id){extra.spriteSrc="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/"+p.creature.id+".gif"}
+if(!extra.spriteSrc&&p.creature?.id)extra.spriteSrc="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/"+p.creature.id+".gif";
 speciesCache.set(key,extra);Object.assign(p,extra);return p
 }
 function render(p){
@@ -125,6 +147,6 @@ box.style.display="block";box.scrollTop=0;box.querySelector(".jp-wrap")?.scrollT
 const saved=localStorage.getItem(CFG.storageKey);if(saved){try{const z=JSON.parse(saved);if(z.w&&z.h){box.style.width=Math.max(560,Math.min(innerWidth-12,z.w))+"px";box.style.height=Math.max(520,Math.min(innerHeight-12,z.h))+"px"}}catch{}}
 if(!box.dataset.resizeBound){box.dataset.resizeBound="1";new ResizeObserver(()=>{clearTimeout(box._resizeTimer);box._resizeTimer=setTimeout(()=>{localStorage.setItem(CFG.storageKey,JSON.stringify({w:box.offsetWidth,h:box.offsetHeight}))},120)}).observe(box)}
 }
-function scan(){const tips=[...document.querySelectorAll(".inv-tip")].filter(t=>{const s=getComputedStyle(t),r=t.getBoundingClientRect();return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0});const tip=tips.find(t=>{const tx=t.innerText||"";return !/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(tx)&&!/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(tx)})||tips[0];if(!tip){return}const text=tip.innerText||"";if(/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(text)||/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(text)){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}const p=parse(text);if(!p){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}p.spriteSrc=findSpriteSrc(tip);if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p);hydratePokemon(p).then(()=>{if(current===p){p.spriteSrc=p.spriteSrc||findSpriteSrc(tip);render(p)}})}}
+function scan(){const tips=[...document.querySelectorAll(".inv-tip")].filter(t=>{const s=getComputedStyle(t),r=t.getBoundingClientRect();return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0});const tip=tips.find(t=>{const tx=t.innerText||"";return !/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(tx)&&!/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(tx)})||tips[0];if(!tip){return}const text=tip.innerText||"";if(/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(text)||/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(text)){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}const p=parse(text);if(!p){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}p.spriteSrc=findSpriteSrc(tip)||"";if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p);hydratePokemon(p).then(()=>{if(current===p){p.spriteSrc=p.spriteSrc||findSpriteSrc(tip);render(p)}})}}
 new MutationObserver(scan).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});document.addEventListener("mouseover",e=>{if(e.target.closest?.(".inv-tip"))setTimeout(scan,0)},true);setInterval(scan,250);panel();load();
 })();
