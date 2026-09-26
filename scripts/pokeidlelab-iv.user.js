@@ -46,10 +46,10 @@ s.textContent=`
 #${CFG.panelId} .jp-name{font-size:22px;font-weight:900;letter-spacing:-1px}
 #${CFG.panelId} .jp-id{font-size:14px;color:#78918e}
 #${CFG.panelId} .jp-type{display:inline-flex;padding:4px 12px;border:1px solid #785f39;border-radius:3px;background:#693b30;color:#ffd9b2;font-weight:800;font-size:9px;margin-bottom:8px}
-#${CFG.panelId} .jp-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-#${CFG.panelId} .jp-meta-box{background:linear-gradient(180deg,#142b30,#102124);border:1px solid #334d4c;border-radius:4px;padding:7px 8px}
+#${CFG.panelId} .jp-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+#${CFG.panelId} .jp-meta-box{background:linear-gradient(180deg,#142b30,#102124);border:1px solid #334d4c;border-radius:4px;padding:7px 8px;text-align:center;min-width:0}
 #${CFG.panelId} .jp-label{display:block;font-size:9px;text-transform:uppercase;color:#78918e;margin-bottom:3px}
-#${CFG.panelId} .jp-value{font-size:16px;font-weight:900}
+#${CFG.panelId} .jp-value{font-size:16px;font-weight:900;white-space:nowrap}
 #${CFG.panelId} .jp-muted{color:#8797aa;font-size:.7em}
 #${CFG.panelId} .jp-rating{display:flex;align-items:center;gap:22px;background:linear-gradient(90deg,#15292a,#132522);border:1px solid #405b57;border-radius:4px;padding:9px 11px;margin:8px 0}
 #${CFG.panelId} .jp-gauge{width:58px;height:58px;flex:0 0 58px;border-radius:50%;background:conic-gradient(#f1c644 calc(var(--score)*3.6deg),#1d2a3a 0);display:grid;place-items:center;position:relative}
