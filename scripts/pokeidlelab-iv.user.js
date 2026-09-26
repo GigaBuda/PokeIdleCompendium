@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.3
+// @version      1.0.4
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -368,7 +368,7 @@
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Habilidades</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.3</span></div>`;
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.4</span></div>`;
 
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
@@ -423,32 +423,47 @@
     };
 
     const scan = () => {
-      const tips = Array.from(document.querySelectorAll(".inv-tip"));
-      // A calculadora só existe enquanto existe um tooltip de Pokémon.
-      // Se o tooltip for de item/recurso, parseTooltip() devolve null.
-      let found = false;
+      // PokeGrid mantiene tooltips antiguos en el DOM. No podemos recorrer
+      // todos los .inv-tip porque podríamos encontrar un Pokémon oculto
+      // aunque el ratón esté realmente encima de un loot/Poké Ball.
+      const tips = Array.from(document.querySelectorAll(".inv-tip")).filter(tip => {
+        const style = getComputedStyle(tip);
+        const rect = tip.getBoundingClientRect();
+        return style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          Number(style.opacity || 1) > 0 &&
+          rect.width > 0 &&
+          rect.height > 0;
+      });
 
-      for (const tip of tips) {
-        const text = tip.innerText || "";
-        if (!text) continue;
+      // Solo importa el tooltip visible que PokeGrid está mostrando ahora.
+      const tip = tips[0];
+      if (!tip) return;
 
-        const parsed = parseTooltip(text);
-        if (!parsed) continue;
+      const text = tip.innerText || "";
+      if (!text) return;
 
-        const img = tip.querySelector("img");
-        parsed.spriteSrc = img?.currentSrc || img?.src || "";
+      const parsed = parseTooltip(text);
 
-        found = true;
-        if (tip !== lastPokemonTooltip || text !== lastText) {
-          lastPokemonTooltip = tip;
-          lastText = text;
-          render(parsed);
-        }
-        break;
+      // Si el tooltip visible es un loot, Poké Ball, recurso, objeto, etc.,
+      // cerramos nuestro panel inmediatamente. Nunca usamos un tooltip de
+      // Pokémon antiguo que haya quedado oculto en el DOM.
+      if (!parsed) {
+        const panel = document.getElementById(CFG.panelId);
+        if (panel) panel.style.display = "none";
+        lastPokemonTooltip = null;
+        lastText = "";
+        return;
       }
 
-      // El panel queda fijado después del primer Pokémon; el siguiente hover lo actualiza.
-      if (!found) return;
+      const img = tip.querySelector("img");
+      parsed.spriteSrc = img?.currentSrc || img?.src || "";
+
+      if (tip !== lastPokemonTooltip || text !== lastText) {
+        lastPokemonTooltip = tip;
+        lastText = text;
+        render(parsed);
+      }
     };
 
     new MutationObserver(scan).observe(document.body, {
