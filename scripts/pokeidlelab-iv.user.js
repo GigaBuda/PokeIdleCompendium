@@ -1,1 +1,1 @@
-// rollback pending
+// rollback
