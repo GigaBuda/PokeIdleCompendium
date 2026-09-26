@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.4
+// @version      1.0.5
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -123,6 +123,18 @@
 
     const nameLine = lines.find(x => !/(?:Lv\.?\s*\d+|IV\s*\d+|Qualidade|Raridade|Poder|Power|×|x\s*\d)/i.test(x));
     const name = nameLine || lines[0];
+    const cleanName = name
+      .replace(/^(?:LOOT|ITEM|POK[EÉ] BALL|POK[EÉ]BALL|RECURSO)\\s*/i, "")
+      .replace(/\\s+(?:LOOT|ITEM|POK[EÉ] BALL|POK[EÉ]BALL|RECURSO)\\s*$/i, "")
+      .replace(/\\s+x\\s*\\d+\\s*$/i, "")
+      .trim();
+
+    // Validación estricta: solo un nombre que exista exactamente en
+    // creatures.json puede abrir la calculadora. Los tooltips de loot,
+    // Poké Balls, huevos, recursos y objetos quedan descartados.
+    const exactCreature = creatures.find(c => norm(c.name) === norm(cleanName));
+    if (!exactCreature) return null;
+
     const level = levelMatch ? Number(levelMatch[1]) : 1;
     const quality = qualityMatch ? Number(qualityMatch[1].replace(",", ".")) : 1;
 
@@ -150,7 +162,7 @@
 
     if (!name || !Number.isFinite(level)) return null;
     return {
-      name: name.replace(/\s+(?:Lv\.?\s*\d+).*$/i, "").trim(),
+      name: cleanName.replace(/\s+(?:Lv\.?\s*\d+).*$/i, "").trim(),
       level, quality,
       ivObserved: ivMatch ? Number(ivMatch[1]) : null,
       ivMax: ivMatch ? Number(ivMatch[2]) : 192,
@@ -368,7 +380,7 @@
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Habilidades</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.4</span></div>`;
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.5</span></div>`;
 
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
