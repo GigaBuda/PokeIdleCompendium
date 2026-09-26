@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.6
+// @version      1.0.7
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -460,7 +460,9 @@
     const panel = document.getElementById(CFG.panelId);
     if (!content || !panel) return;
 
-    const farmRows = optimizeFarm(data);
+    panel.style.display = "block";
+    let farmRows = [];
+    try { farmRows = optimizeFarm(data); } catch (err) { console.warn("[PokeIdleLab IV] Farm optimizer error:", err); }
     const farmHtml = farmRows.length ? farmRows.map((r,i) =>
       '<div class="pil-farm-row">' +
       '<div class="pil-farm-rank">#' + (i + 1) + '</div>' +
@@ -508,10 +510,10 @@
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Habilidades</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.6</span></div>` : `
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.7</span></div>` : `
       <div class="pil-farm-hero"><div class="pil-farm-title">⚔️ Mejor sitio para farmear con ${esc(data.name)}</div><div class="pil-farm-sub">Mismo criterio del optimizador de PokeIdleLab: XP/h, golpes completos, debilidad elemental y hunts desbloqueadas.</div>${farmControls}</div>
       <div class="pil-section">Ranking de presas</div><div>${farmHtml}</div>
-      <div class="pil-footer"><span>Jugador: <b>Nv ${data.level}</b> · IV ${data.total}/192 · Calidad ${data.quality.toFixed(2)}</span><span>PokeIdleLab Farm Optimizer&nbsp; v1.0.6</span></div>`;
+      <div class="pil-footer"><span>Jugador: <b>Nv ${data.level}</b> · IV ${data.total}/192 · Calidad ${data.quality.toFixed(2)}</span><span>PokeIdleLab Farm Optimizer&nbsp; v1.0.7</span></div>`;
 
     content.querySelectorAll("[data-pil-tab]").forEach(button => button.addEventListener("click", () => {
       activeTab = button.dataset.pilTab === "farm" ? "farm" : "iv";
