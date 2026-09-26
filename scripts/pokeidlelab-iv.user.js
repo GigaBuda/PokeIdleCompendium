@@ -78,7 +78,9 @@
 
     const containers = [c.stats, c.baseStats, c.base_stats, c.attributes];
     const fallbackNames = {
-      hp: ["hp", "HP"], atk: ["atk", "attack", "Attack"], def: ["def", "defense", "Defense"],
+      hp: ["hp", "HP"],
+      atk: ["atk", "attack", "Attack"],
+      def: ["def", "defense", "Defense"],
       spa: ["spa", "spatk", "spAttack", "specialAttack", "Special Attack"],
       spd: ["spd", "spdef", "spDefense", "specialDefense", "Special Defense"],
       vel: ["vel", "spe", "speed", "Speed"]
@@ -108,10 +110,7 @@
         if (!r.ok) continue;
         const d = await r.json();
         const list = Array.isArray(d?.creatures) ? d.creatures : (Array.isArray(d) ? d : []);
-        if (list.length) {
-          creatures = list;
-          return;
-        }
+        if (list.length) { creatures = list; return; }
       } catch {}
     }
   }
@@ -119,12 +118,10 @@
   function parseTooltip(text) {
     const lines = String(text || "").split(/\n+/).map(s => s.trim()).filter(Boolean);
     if (!lines.length) return null;
-
     const levelMatch = text.match(/(?:Lv\.?|Nivel|Nível)\s*(\d+)/i);
     const qualityMatch = text.match(/(?:×|x)\s*(\d+(?:[.,]\d+)?)/);
     const ivMatch = text.match(/(?:IV)\s*(\d+)\s*\/\s*(\d+)/i);
     const powerMatch = text.match(/(?:Poder|Power)\s*[:\-]?\s*(\d+)/i);
-
     const nameLine = lines.find(x => !/(?:Lv\.?\s*\d+|IV\s*\d+|Qualidade|Raridade|Poder|Power|×|x\s*\d)/i.test(x));
     const name = nameLine || lines[0];
     const cleanName = name
@@ -132,38 +129,24 @@
       .replace(/\s+(?:LOOT|ITEM|POK[EÉ] BALL|POK[EÉ]BALL|RECURSO)\s*$/i, "")
       .replace(/\s+x\s*\d+\s*$/i, "")
       .trim();
-
     const exactCreature = creatures.find(c => norm(c.name) === norm(cleanName));
-    // Si la lista de criaturas todavía no ha cargado, no bloqueamos el tooltip.
     if (creatures.length && !exactCreature) return null;
-
     const level = levelMatch ? Number(levelMatch[1]) : 1;
     const quality = qualityMatch ? Number(qualityMatch[1].replace(",", ".")) : 1;
-
     const keys = ["hp", "atk", "def", "spa", "spd", "vel"];
     const actuals = {};
     for (const k of keys) {
-      const label = {
-        hp: "(?:HP|Vida)", atk: "(?:ATK|Atk|Ataque)", def: "(?:DEF|Def|Defesa)",
-        spa: "(?:SpA|SPA|Sp\\.\\s*A|Ataque\\s*especial)", spd: "(?:SpD|SPD|Sp\\.\\s*D|Defesa\\s*especial)",
-        vel: "(?:VEL|Vel|Speed|Velocidade)"
-      }[k];
+      const label = { hp:"(?:HP|Vida)", atk:"(?:ATK|Atk|Ataque)", def:"(?:DEF|Def|Defesa)", spa:"(?:SpA|SPA|Sp\\.\\s*A|Ataque\\s*especial)", spd:"(?:SpD|SPD|Sp\\.\\s*D|Defesa\\s*especial)", vel:"(?:VEL|Vel|Speed|Velocidade)" }[k];
       const m = text.match(new RegExp(label + "\\s*[:=]?\\s*(\\d+)", "i"));
       if (m) actuals[k] = Number(m[1]);
     }
-
     if (Object.keys(actuals).length < 6) {
       const statRows = Array.from(document.querySelectorAll(".inv-tip .stat, .inv-tip [class*='stat']")).map(e => e.textContent || "");
       const found = statRows.map(s => s.match(/(\d+)/)?.[1]).filter(Boolean).map(Number);
       if (found.length >= 6) keys.forEach((k, i) => { if (actuals[k] == null) actuals[k] = found[i]; });
     }
-
     if (!name || !Number.isFinite(level)) return null;
-    return {
-      name: cleanName.replace(/\s+(?:Lv\.?\s*\d+).*$/i, "").trim(), level, quality,
-      ivObserved: ivMatch ? Number(ivMatch[1]) : null, ivMax: ivMatch ? Number(ivMatch[2]) : 192,
-      powerGame: powerMatch ? Number(powerMatch[1]) : 0, actuals
-    };
+    return { name: cleanName.replace(/\s+(?:Lv\.?\s*\d+).*$/i, "").trim(), level, quality, ivObserved: ivMatch ? Number(ivMatch[1]) : null, ivMax: ivMatch ? Number(ivMatch[2]) : 192, powerGame: powerMatch ? Number(powerMatch[1]) : 0, actuals };
   }
 
   function spriteUrls(creature, pokemon) {
@@ -218,10 +201,8 @@
     const bases = {}, ivs = {}, stats = {};
     let sum = 0;
     for (const k of Object.keys(CFG.statLabels)) {
-      bases[k] = creatureBase(c, k);
-      stats[k] = Number(p.actuals[k] ?? 0);
-      ivs[k] = bases[k] && stats[k] ? estimateIV(stats[k], bases[k], p.level, p.quality, CFG.exponents[k]) : 0;
-      sum += ivs[k];
+      bases[k] = creatureBase(c, k); stats[k] = Number(p.actuals[k] ?? 0);
+      ivs[k] = bases[k] && stats[k] ? estimateIV(stats[k], bases[k], p.level, p.quality, CFG.exponents[k]) : 0; sum += ivs[k];
     }
     const total = Number.isFinite(p.ivObserved) && p.ivObserved > 0 ? p.ivObserved : Math.ceil(sum);
     const pct = Math.max(0, Math.min(100, (total / CFG.maxTotal) * 100));
@@ -229,10 +210,7 @@
     const power = Object.keys(CFG.statLabels).reduce((s, k) => s + stats[k], 0) * p.quality;
     const moves = [];
     const rawMoves = c && (c.moves || c.attacks || c.skills || c.spells);
-    if (Array.isArray(rawMoves)) rawMoves.slice(0, 12).forEach(m => {
-      if (typeof m === "string") moves.push({ name: m });
-      else if (m) moves.push({ name: m.name || m.moveName || m.move || m.id || "?", power: m.power ?? m.basePower ?? m.damage ?? null, type: m.type || m.element || "", level: m.learnLevel ?? m.level ?? m.lvl ?? null });
-    });
+    if (Array.isArray(rawMoves)) rawMoves.slice(0, 12).forEach(m => { if (typeof m === "string") moves.push({ name: m }); else if (m) moves.push({ name: m.name || m.moveName || m.move || m.id || "?", power: m.power ?? m.basePower ?? m.damage ?? null, type: m.type || m.element || "", level: m.learnLevel ?? m.level ?? m.lvl ?? null }); });
     return { ...p, creature: c, bases, stats, ivs, total, pct, classification, classColor, power: Math.round(power), moves };
   }
 
@@ -241,9 +219,9 @@
     const style = document.createElement("style");
     style.textContent = `
       #${CFG.panelId}{position:fixed;z-index:2147483647;top:80px;right:18px;width:390px;max-height:calc(100vh - 100px);overflow:auto;background:#101622;color:#f0f4f9;border:1px solid rgba(255,255,255,.09);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.55);font:12px Arial,sans-serif;display:none}
-      #${CFG.panelId} *{box-sizing:border-box}.pil-head{position:sticky;top:0;z-index:2;background:#101622;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;cursor:move}
-      .pil-title{font-size:16px;font-weight:800}.pil-close{border:1px solid rgba(255,255,255,.12);background:#151d2a;color:#dce5ef;border-radius:8px;width:28px;height:28px;cursor:pointer}.pil-body{padding:12px}
-      .pil-top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}.pil-box{background:#0b1019;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:9px}.pil-label{font-size:8px;text-transform:uppercase;color:#8392a7;letter-spacing:.6px}.pil-value{font-size:17px;font-weight:900;margin-top:3px}
+      #${CFG.panelId} *{box-sizing:border-box} .pil-head{position:sticky;top:0;z-index:2;background:#101622;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between;cursor:move}
+      .pil-title{font-size:16px;font-weight:800}.pil-close{border:1px solid rgba(255,255,255,.12);background:#151d2a;color:#dce5ef;border-radius:8px;width:28px;height:28px;cursor:pointer}
+      .pil-body{padding:12px}.pil-top{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}.pil-box{background:#0b1019;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:9px}.pil-label{font-size:8px;text-transform:uppercase;color:#8392a7;letter-spacing:.6px}.pil-value{font-size:17px;font-weight:900;margin-top:3px}
       .pil-rating{display:flex;gap:12px;align-items:center;margin:10px 0;padding:10px;background:#0b1019;border:1px solid rgba(255,255,255,.07);border-radius:10px}.pil-ring{width:55px;height:55px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--p)*1%),#202938 0)}.pil-ring:after{content:"";width:43px;height:43px;background:#0b1019;border-radius:50%;position:absolute}.pil-ring span{position:relative;z-index:1;font-weight:900}
       .pil-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pil-stat{background:#0b1019;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px}.pil-stat-name{font-weight:900;color:var(--c)}.pil-iv{font-size:17px;font-weight:900;margin:3px 0}.pil-input{width:100%;background:#121a27;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px}.pil-base{font-size:9px;color:#8392a7;margin-top:4px}
       .pil-section{font-size:9px;color:#8392a7;text-transform:uppercase;letter-spacing:1px;margin:13px 0 7px}.pil-move{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;border-radius:8px;background:#0b1019;border:1px solid rgba(255,255,255,.06);margin-bottom:5px}.pil-type{font-size:9px;padding:2px 6px;border-radius:8px;background:#283449;color:#fff;margin-right:6px}.pil-muted{color:#8392a7}
@@ -257,108 +235,55 @@
     const head = panel.querySelector("#pil-drag");
     head.addEventListener("mousedown", e => {
       if (e.target.closest("button")) return;
-      dragging = true;
-      const r = panel.getBoundingClientRect();
+      dragging = true; const r = panel.getBoundingClientRect();
       panel.dataset.dx = String(e.clientX - r.left); panel.dataset.dy = String(e.clientY - r.top);
       panel.style.right = "auto"; panel.style.left = r.left + "px"; panel.style.top = r.top + "px"; e.preventDefault();
     });
-    document.addEventListener("mousemove", e => {
-      if (!dragging) return;
-      panel.style.left = Math.max(0, Math.min(innerWidth - panel.offsetWidth, e.clientX - Number(panel.dataset.dx))) + "px";
-      panel.style.top = Math.max(0, Math.min(innerHeight - 50, e.clientY - Number(panel.dataset.dy))) + "px";
-    });
+    document.addEventListener("mousemove", e => { if (!dragging) return; panel.style.left = Math.max(0, Math.min(innerWidth - panel.offsetWidth, e.clientX - Number(panel.dataset.dx))) + "px"; panel.style.top = Math.max(0, Math.min(innerHeight - 50, e.clientY - Number(panel.dataset.dy))) + "px"; });
     document.addEventListener("mouseup", () => { dragging = false; saveState(); });
     restoreState();
   }
 
   function render(p) {
-    const data = calculate(p);
-    current = data;
-    const content = document.getElementById("pil-content");
-    const panel = document.getElementById(CFG.panelId);
+    const data = calculate(p); current = data;
+    const content = document.getElementById("pil-content"), panel = document.getElementById(CFG.panelId);
     if (!content || !panel) return;
     const statCards = Object.keys(CFG.statLabels).map(k => `<div class="pil-stat" style="--c:${CFG.colors[k]}"><div class="pil-stat-name">${CFG.statLabels[k]} <span class="pil-muted">${data.ivs[k].toFixed(1)}/32</span></div><input class="pil-input" data-stat="${k}" type="number" value="${data.stats[k] || ""}" /><div class="pil-base">base ${data.bases[k] || "?"}</div></div>`).join("");
     const moves = data.moves.length ? data.moves.map(m => `<div class="pil-move"><div><span class="pil-type">${esc(m.type || "—")}</span><b>${esc(m.name)}</b></div><div><span class="pil-muted">${m.level != null ? "Nv " + m.level : ""}</span> <b>${m.power != null ? m.power : "—"}</b></div></div>`).join("") : '<div class="pil-muted">Sin movimientos disponibles.</div>';
-    const type = esc(typeName(data.creature) || "—");
-    const sprite = data.spriteAnim || data.spriteStill || "";
     content.innerHTML = `<div class="pil-top"><div class="pil-box"><div class="pil-label">Pokémon</div><div class="pil-value">${esc(data.name)}</div></div><div class="pil-box"><div class="pil-label">Nivel</div><div class="pil-value">${data.level}</div></div><div class="pil-box"><div class="pil-label">Calidad</div><div class="pil-value">×${data.quality}</div></div></div><div class="pil-rating"><div class="pil-ring" style="--p:${data.pct};--c:${data.classColor}"><span>${data.total}</span></div><div><div style="font-size:16px;font-weight:900">${esc(data.classification)}</div><div class="pil-muted">IV total · ${data.pct.toFixed(1)}%</div></div></div><div class="pil-grid">${statCards}</div><div class="pil-section">Habilidades</div><div>${moves}</div><div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.8</span></div>`;
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => { const k = input.dataset.stat; current.stats[k] = Number(input.value) || 0; render(current); }));
-    panel.style.display = "block";
-    exposeToPokeGrid(data);
-    if (!data.spriteAnim && !data.spriteStill) resolveSpriteData(data);
+    panel.style.display = "block"; exposeToPokeGrid(data); if (!data.spriteAnim && !data.spriteStill) resolveSpriteData(data);
   }
 
   function exposeToPokeGrid(data) {
     try {
       window.__pgIv = window.__pgIv || {};
-      window.__pgIv.calc = async () => ({ nome: data.name, nivel: data.level, qualidade: data.quality, ivs: data.ivs, ivTotal: data.total, ivMax: 192, percentual: data.pct, classificacao: data.classification, poder: data.power, poderJogo: data.powerGame, bases: data.bases, atuais: data.stats, golpes: data.moves });
+      window.__pgIv.calc = async () => ({ nome:data.name, nivel:data.level, qualidade:data.quality, ivs:data.ivs, ivTotal:data.total, ivMax:192, percentual:data.pct, classificacao:data.classification, poder:data.power, poderJogo:data.powerGame, bases:data.bases, atuais:data.stats, golpes:data.moves });
       window.__pgIv.reportar = async () => console.log("__PGIV__" + JSON.stringify(await window.__pgIv.calc()));
       window.__pgIv.reportar();
     } catch {}
   }
 
-  function saveState() {
-    try {
-      const p = document.getElementById(CFG.panelId); if (!p) return;
-      localStorage.setItem(CFG.storageKey, JSON.stringify({ left:p.style.left, top:p.style.top, right:p.style.right }));
-    } catch {}
-  }
-
-  function restoreState() {
-    try {
-      const s = JSON.parse(localStorage.getItem(CFG.storageKey) || "null");
-      const p = document.getElementById(CFG.panelId); if (!p || !s) return;
-      if (s.left) p.style.left = s.left; if (s.top) p.style.top = s.top; if (s.right) p.style.right = s.right;
-    } catch {}
-  }
+  function saveState() { try { const p=document.getElementById(CFG.panelId); if (!p) return; localStorage.setItem(CFG.storageKey, JSON.stringify({left:p.style.left,top:p.style.top,right:p.style.right})); } catch {} }
+  function restoreState() { try { const s=JSON.parse(localStorage.getItem(CFG.storageKey)||"null"), p=document.getElementById(CFG.panelId); if (!p||!s) return; if(s.left)p.style.left=s.left; if(s.top)p.style.top=s.top; if(s.right)p.style.right=s.right; } catch {} }
 
   function observeTooltips() {
     const scan = () => {
-      const tips = Array.from(document.querySelectorAll(".inv-tip")).filter(tip => {
-        const style = getComputedStyle(tip); const rect = tip.getBoundingClientRect();
-        return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || 1) > 0 && rect.width > 0 && rect.height > 0;
-      });
+      const tips = Array.from(document.querySelectorAll(".inv-tip")).filter(tip => { const style=getComputedStyle(tip), rect=tip.getBoundingClientRect(); return style.display!=="none"&&style.visibility!=="hidden"&&Number(style.opacity||1)>0&&rect.width>0&&rect.height>0; });
       const tip = tips[tips.length - 1];
-      if (!tip) {
-        const panel = document.getElementById(CFG.panelId);
-        if (panel) panel.style.display = "none";
-        lastPokemonTooltip = null; lastText = "";
-        return;
-      }
-      const text = tip.innerText || "";
-      if (!text) return;
-      const parsed = parseTooltip(text);
-      if (!parsed) {
-        const panel = document.getElementById(CFG.panelId);
-        if (panel) panel.style.display = "none";
-        lastPokemonTooltip = null; lastText = "";
-        return;
-      }
-      const img = tip.querySelector("img");
-      parsed.spriteSrc = img?.currentSrc || img?.src || "";
-      if (tip !== lastPokemonTooltip || text !== lastText) {
-        lastPokemonTooltip = tip; lastText = text; render(parsed);
-      }
+      if (!tip) { const panel=document.getElementById(CFG.panelId); if(panel)panel.style.display="none"; lastPokemonTooltip=null; lastText=""; return; }
+      const text=tip.innerText||""; if(!text)return;
+      const parsed=parseTooltip(text);
+      if(!parsed){const panel=document.getElementById(CFG.panelId);if(panel)panel.style.display="none";lastPokemonTooltip=null;lastText="";return;}
+      const img=tip.querySelector("img"); parsed.spriteSrc=img?.currentSrc||img?.src||"";
+      if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;render(parsed);}
     };
-
-    new MutationObserver(scan).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
-    document.addEventListener("mouseover", e => {
-      const tip = e.target.closest && e.target.closest(".inv-tip");
-      if (tip) setTimeout(scan, 0);
-    }, true);
-    document.addEventListener("mouseout", e => {
-      const tip = e.target.closest && e.target.closest(".inv-tip");
-      if (tip && (!e.relatedTarget || !tip.contains(e.relatedTarget))) setTimeout(scan, 30);
-    }, true);
-    setInterval(scan, 150);
+    new MutationObserver(scan).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});
+    document.addEventListener("mouseover",e=>{const tip=e.target.closest&&e.target.closest(".inv-tip");if(tip)setTimeout(scan,0);},true);
+    document.addEventListener("mouseout",e=>{const tip=e.target.closest&&e.target.closest(".inv-tip");if(tip&&(!e.relatedTarget||!tip.contains(e.relatedTarget)))setTimeout(scan,30);},true);
+    setInterval(scan,150);
   }
 
-  async function init() {
-    createPanel();
-    await loadCreatures();
-    observeTooltips();
-    console.log("[PokeIdleLab IV] addon cargado v1.0.8");
-  }
-
+  async function init() { createPanel(); await loadCreatures(); observeTooltips(); console.log("[PokeIdleLab IV] addon cargado v1.0.8"); }
   init();
 })();
