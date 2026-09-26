@@ -1,3 +1,5 @@
+import { POKEMON_TIER_DATA } from './pokemonTierData';
+
 /**
  * Calibración de hunts basada en sesiones reales.
  *
@@ -114,6 +116,7 @@ export function recordHuntCalibration(input: Omit<HuntCalibrationSample, 'id' | 
   if (!Number.isFinite(kills) || !Number.isFinite(elapsedSeconds)) return null;
   if (kills < MIN_SESSION_KILLS || elapsedSeconds < MIN_SESSION_SECONDS) return null;
   if (!Number.isInteger(input.targetId) || input.targetId <= 0) return null;
+  if (!POKEMON_TIER_DATA.some((pokemon) => pokemon.id === input.targetId)) return null;
   if (!Number.isInteger(Number(input.huntLevel)) || Number(input.huntLevel) < 0) return null;
 
   const sample: HuntCalibrationSample = {
