@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.18
+// @version      1.0.19
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -31,52 +31,52 @@ function panel(){
 if(document.getElementById(CFG.panelId))return;
 const s=document.createElement("style");
 s.textContent=`
-#${CFG.panelId}{position:fixed;z-index:2147483647;top:50%;left:50%;transform:translate(-50%,-50%);width:min(760px,calc(100vw - 24px));height:min(820px,calc(100vh - 24px));min-width:560px;min-height:520px;max-width:calc(100vw - 12px);max-height:calc(100vh - 12px);overflow:hidden;resize:both;background:linear-gradient(145deg,#09111b 0%,#0b121c 55%,#080d15 100%);color:#f0f4f9;border:1px solid #26384e;border-radius:24px;box-shadow:0 30px 90px rgba(0,0,0,.78),0 0 45px rgba(50,130,190,.08);font:14px Arial,sans-serif;display:none}
+#${CFG.panelId}{position:fixed;z-index:2147483647;top:50%;left:50%;transform:translate(-50%,-50%);width:min(760px,calc(100vw - 20px));height:min(820px,calc(100vh - 20px));min-width:560px;min-height:520px;max-width:calc(100vw - 12px);max-height:calc(100vh - 12px);overflow:hidden;resize:both;background:linear-gradient(180deg,#10262b 0%,#0c1c20 52%,#111d1c 100%);color:#dce9e4;border:1px solid #b29a38;border-radius:7px;box-shadow:0 18px 50px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 0 1px rgba(0,0,0,.45);font:12px Arial,sans-serif;display:none}
 #${CFG.panelId} *{box-sizing:border-box}
-#${CFG.panelId} .jp-wrap{padding:18px;height:100%;overflow:auto}
-#${CFG.panelId} .jp-head{display:grid;grid-template-columns:325px 1fr;gap:18px;align-items:center;padding-bottom:16px}
-#${CFG.panelId} .jp-visual{height:205px;border-radius:18px;position:relative;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 55%,rgba(255,55,65,.18),transparent 42%),linear-gradient(145deg,#101725,#080e16)}
-#${CFG.panelId} .jp-visual:before{content:"";position:absolute;width:275px;height:48px;bottom:20px;border:3px solid #ff4855;border-radius:50%;box-shadow:0 0 18px rgba(255,60,75,.9),inset 0 0 12px rgba(255,60,75,.45)}
+#${CFG.panelId} .jp-wrap{padding:9px 12px 10px;height:100%;overflow:auto;scrollbar-width:thin;scrollbar-color:#3d5a57 #0b1718}
+#${CFG.panelId} .jp-head{display:grid;grid-template-columns:205px 1fr;gap:10px;align-items:stretch;padding-bottom:8px;border-bottom:1px solid #526b68}
+#${CFG.panelId} .jp-visual{height:160px;border-radius:5px;position:relative;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 48%,rgba(55,118,108,.18),transparent 48%),linear-gradient(145deg,#142b30,#0b181c)}
+#${CFG.panelId} .jp-visual:before{content:"";position:absolute;width:165px;height:31px;bottom:12px;border:2px solid #b8a03b;border-radius:50%;box-shadow:0 0 10px rgba(205,178,57,.42),inset 0 0 8px rgba(205,178,57,.18)}
 #${CFG.panelId} .jp-visual:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 18% 20%,rgba(255,255,255,.12) 0 2px,transparent 3px),radial-gradient(circle at 80% 25%,rgba(255,70,80,.7) 0 2px,transparent 3px);pointer-events:none}
-#${CFG.panelId} .jp-sprite{width:175px;height:175px;object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 12px 18px rgba(0,0,0,.6))}
+#${CFG.panelId} .jp-sprite{width:145px;height:145px;object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 12px 18px rgba(0,0,0,.6))}
 #${CFG.panelId} .jp-info{min-width:0}
 #${CFG.panelId} .jp-title-row{display:flex;align-items:baseline;gap:12px;margin-bottom:7px}
-#${CFG.panelId} .jp-name{font-size:34px;font-weight:900;letter-spacing:-1px}
-#${CFG.panelId} .jp-id{font-size:14px;color:#a8b5c6}
-#${CFG.panelId} .jp-type{display:inline-flex;padding:8px 25px;border-radius:999px;background:#ff4b4b;color:#151b22;font-weight:900;font-size:14px;margin-bottom:14px}
+#${CFG.panelId} .jp-name{font-size:22px;font-weight:900;letter-spacing:-1px}
+#${CFG.panelId} .jp-id{font-size:14px;color:#78918e}
+#${CFG.panelId} .jp-type{display:inline-flex;padding:4px 12px;border:1px solid #785f39;border-radius:3px;background:#693b30;color:#ffd9b2;font-weight:800;font-size:8px;margin-bottom:8px}
 #${CFG.panelId} .jp-actions{position:absolute;top:16px;right:16px;display:flex;gap:7px}
-#${CFG.panelId} .jp-btn{width:42px;height:42px;border:1px solid #2b3b50;border-radius:12px;background:#111b28;color:#eaf0f7;cursor:pointer;font-size:20px}
-#${CFG.panelId} .jp-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
-#${CFG.panelId} .jp-meta-box{background:#0b131e;border:1px solid #26364a;border-radius:12px;padding:11px 12px}
-#${CFG.panelId} .jp-label{display:block;font-size:10px;text-transform:uppercase;color:#a1afbf;margin-bottom:5px}
-#${CFG.panelId} .jp-value{font-size:25px;font-weight:900}
+#${CFG.panelId} .jp-btn{width:26px;height:22px;border:1px solid #405a58;border-radius:3px;background:#132a2d;color:#dce9e4;cursor:pointer;font-size:13px}
+#${CFG.panelId} .jp-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+#${CFG.panelId} .jp-meta-box{background:linear-gradient(180deg,#142b30,#102124);border:1px solid #334d4c;border-radius:4px;padding:7px 8px}
+#${CFG.panelId} .jp-label{display:block;font-size:8px;text-transform:uppercase;color:#78918e;margin-bottom:3px}
+#${CFG.panelId} .jp-value{font-size:17px;font-weight:900}
 #${CFG.panelId} .jp-muted{color:#8797aa;font-size:.7em}
-#${CFG.panelId} .jp-rating{display:flex;align-items:center;gap:22px;background:linear-gradient(145deg,#0d1723,#0a121c);border:1px solid #293b51;border-radius:17px;padding:17px 22px;margin:0 0 17px}
-#${CFG.panelId} .jp-gauge{width:92px;height:92px;flex:0 0 92px;border-radius:50%;background:conic-gradient(#f1c644 calc(var(--score)*3.6deg),#1d2a3a 0);display:grid;place-items:center;position:relative}
-#${CFG.panelId} .jp-gauge:before{content:"";width:72px;height:72px;border-radius:50%;background:#0a121c;position:absolute}
-#${CFG.panelId} .jp-gauge span{position:relative;z-index:1;font-size:21px;font-weight:900;color:#f1c644}
-#${CFG.panelId} .jp-rating-title{font-size:26px;font-weight:900;color:#f1c644}
-#${CFG.panelId} .jp-rating-sub{font-size:14px;color:#a9b7c9;margin-top:4px}
-#${CFG.panelId} .jp-section{font-size:14px;font-weight:800;color:#9eafc4;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 9px}
+#${CFG.panelId} .jp-rating{display:flex;align-items:center;gap:22px;background:linear-gradient(90deg,#15292a,#132522);border:1px solid #405b57;border-radius:4px;padding:9px 11px;margin:8px 0}
+#${CFG.panelId} .jp-gauge{width:58px;height:58px;flex:0 0 58px;border-radius:50%;background:conic-gradient(#f1c644 calc(var(--score)*3.6deg),#1d2a3a 0);display:grid;place-items:center;position:relative}
+#${CFG.panelId} .jp-gauge:before{content:"";width:46px;height:46px;border-radius:50%;background:#0a121c;position:absolute}
+#${CFG.panelId} .jp-gauge span{position:relative;z-index:1;font-size:14px;font-weight:900;color:#f1c644}
+#${CFG.panelId} .jp-rating-title{font-size:18px;font-weight:900;color:#f1c644}
+#${CFG.panelId} .jp-rating-sub{font-size:10px;color:#7f9894;margin-top:2px}
+#${CFG.panelId} .jp-section{font-size:10px;font-weight:900;color:#bfcfca;text-transform:uppercase;letter-spacing:.45px;margin:8px 0 5px;padding-bottom:4px;border-bottom:1px solid #354b49}
 #${CFG.panelId} .jp-accent{color:#f1c644}
-#${CFG.panelId} .jp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-#${CFG.panelId} .jp-stat{background:linear-gradient(145deg,#0d1722,#0a121c);border:1px solid #29394d;border-radius:15px;padding:13px 14px}
+#${CFG.panelId} .jp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+#${CFG.panelId} .jp-stat{background:linear-gradient(180deg,#12272b,#101f21);border:1px solid #334e4c;border-radius:4px;padding:8px 9px}
 #${CFG.panelId} .jp-stat-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
-#${CFG.panelId} .jp-stat-name{font-size:17px;font-weight:900;color:var(--c)}
-#${CFG.panelId} .jp-iv{font-size:17px;font-weight:900;color:#59e5e0}
-#${CFG.panelId} .jp-track{height:9px;background:#202d3c;border-radius:99px;overflow:hidden;margin-bottom:9px}
+#${CFG.panelId} .jp-stat-name{font-size:12px;font-weight:900;color:var(--c)}
+#${CFG.panelId} .jp-iv{font-size:12px;font-weight:900;color:#62d8ca}
+#${CFG.panelId} .jp-track{height:6px;background:#203432;border-radius:2px;overflow:hidden;margin-bottom:6px}
 #${CFG.panelId} .jp-fill{height:100%;background:var(--c);border-radius:99px}
 #${CFG.panelId} .jp-field{display:grid;grid-template-columns:45px 1fr;gap:6px;align-items:center;margin-top:5px;color:#9caabd;font-size:11px}
-#${CFG.panelId} .jp-input{width:100%;padding:7px 9px;background:#0a111b;border:1px solid #314157;border-radius:7px;color:#eef4fb;font-size:13px}
-#${CFG.panelId} .jp-base{color:#8b9aac;font-size:11px}
+#${CFG.panelId} .jp-input{width:100%;padding:5px 7px;background:#0b181a;border:1px solid #334c4a;border-radius:3px;color:#e3eeea;font-size:11px;height:25px}
+#${CFG.panelId} .jp-base{color:#b7c8c3;font-size:10px}
 #${CFG.panelId} .jp-moves{display:flex;flex-direction:column;gap:5px}
-#${CFG.panelId} .jp-move{display:grid;grid-template-columns:145px 1fr 55px;align-items:center;gap:10px;background:#0c141e;border:1px solid #243449;border-radius:9px;padding:7px 10px}
-#${CFG.panelId} .jp-move-type{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:6px 12px;border-radius:5px;background:var(--type-bg);color:var(--type-fg);font-weight:900;font-size:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);text-transform:uppercase;letter-spacing:.15px}
+#${CFG.panelId} .jp-move{display:grid;grid-template-columns:108px 1fr 45px;align-items:center;gap:10px;background:#0c141e;border:1px solid #243449;border-radius:9px;padding:7px 10px}
+#${CFG.panelId} .jp-move-type{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:4px 7px;border-radius:3px;background:var(--type-bg);color:var(--type-fg);font-weight:900;font-size:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);text-transform:uppercase;letter-spacing:.15px}
 #${CFG.panelId} .jp-type-icon{display:inline-grid;place-items:center;width:15px;height:15px;font-size:11px;line-height:1}
-#${CFG.panelId} .jp-move-name{font-size:14px;font-weight:800}
-#${CFG.panelId} .jp-move-level{font-size:12px;color:#8494a8;margin-left:8px}
-#${CFG.panelId} .jp-move-power{font-size:14px;font-weight:900;color:#ff982d;text-align:right}
-#${CFG.panelId} .jp-footer{display:flex;justify-content:space-between;color:#8493a5;font-size:11px;margin-top:12px}
+#${CFG.panelId} .jp-move-name{font-size:11px;font-weight:800}
+#${CFG.panelId} .jp-move-level{font-size:9px;color:#718985;margin-left:8px}
+#${CFG.panelId} .jp-move-power{font-size:11px;font-weight:900;color:#d7ba45;text-align:right}
+#${CFG.panelId} .jp-footer{display:flex;justify-content:space-between;color:#637b77;font-size:8px;margin-top:7px;padding-top:5px;border-top:1px solid #304643}
 @media(max-width:760px){#${CFG.panelId}{width:calc(100vw - 10px);max-height:calc(100vh - 10px)}#${CFG.panelId} .jp-head{grid-template-columns:1fr}#${CFG.panelId} .jp-visual{height:170px}#${CFG.panelId} .jp-grid{grid-template-columns:repeat(2,1fr)}#${CFG.panelId} .jp-meta{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:470px){#${CFG.panelId} .jp-grid{grid-template-columns:1fr}#${CFG.panelId} .jp-name{font-size:27px}#${CFG.panelId} .jp-move{grid-template-columns:95px 1fr 40px}}
 `;
@@ -139,7 +139,7 @@ const moves=moveList(c);
 const movesHtml=moves.length?moves.map(m=>`<div class="jp-move">${typeBadge(m.type)}<div><span class="jp-move-name">${esc(m.name)}</span><span class="jp-move-level">${m.level!=null?"Nv "+m.level:""}</span></div><span class="jp-move-power">${m.power??"—"}</span></div>`).join(""):`<div class="jp-move"><span class="jp-move-type">INFO</span><div class="jp-move-name">No se encontraron golpes en creatures.json</div><span></span></div>`;
 const bars=Object.keys(CFG.statLabels).map(k=>`<div class="jp-field" style="grid-template-columns:34px 1fr 43px"><span style="color:var(--c);font-weight:800">${CFG.statLabels[k]}</span><div class="jp-track" style="margin:0"><div class="jp-fill" style="width:${Math.max(0,Math.min(100,d.ivs[k]/32*100))}%"></div></div><span style="text-align:right">${d.ivs[k].toFixed(1)}</span></div>`).join("");
 const sprite=d.spriteSrc||"";
-el.innerHTML=`<div class="jp-head"><div class="jp-visual"><img class="jp-sprite" src="${esc(sprite)}" alt="${esc(d.name)}"></div><div class="jp-info"><div class="jp-title-row"><div class="jp-name">${esc(d.name)}</div><div class="jp-id">#${String(c.id??"").padStart(4,"0")}</div></div><span class="jp-type">${esc(type)}</span><div class="jp-meta"><div class="jp-meta-box"><span class="jp-label">Nivel</span><span class="jp-value">${d.level}</span></div><div class="jp-meta-box"><span class="jp-label">Calidad</span><span class="jp-value">${d.quality.toFixed(2).replace(".",",")}</span></div><div class="jp-meta-box"><span class="jp-label">IV Total</span><span class="jp-value" style="color:#55e6d3">${d.total}<span class="jp-muted">/192</span></span></div><div class="jp-meta-box"><span class="jp-label">Poder estimado</span><span class="jp-value" style="color:#f1c644">${Math.round(d.power)}</span></div></div></div><div class="jp-actions"><button class="jp-btn" data-copy title="Copiar">⧉</button><button class="jp-btn" data-close title="Cerrar">×</button></div></div><div class="jp-rating"><div class="jp-gauge" style="--score:${d.pct}"><span>${Math.round(d.pct)}%</span></div><div><div class="jp-rating-title">${rating}</div><div class="jp-rating-sub">Posee atributos equilibrados para uso general.</div></div></div><div class="jp-section">ATRIBUTOS E IV POR STAT <span class="jp-muted">(${d.pct.toFixed(1)}% · <span class="jp-accent">${qualityLabel} ×${d.quality.toFixed(2)}</span>)</span></div><div class="jp-grid">${stats}</div><div class="jp-section">✦ HABILIDADES</div><div class="jp-moves">${movesHtml}</div><div class="jp-footer"><span>Arrastra la esquina inferior derecha para cambiar el tamaño · Poder en el juego: <b>${d.powerGame||Math.round(d.power)}</b></span><span>PokeIdleLab IV Calculator · v1.0.14</span></div>`;
+el.innerHTML=`<div class="jp-head"><div class="jp-visual"><img class="jp-sprite" src="${esc(sprite)}" alt="${esc(d.name)}"></div><div class="jp-info"><div class="jp-title-row"><div class="jp-name">${esc(d.name)}</div><div class="jp-id">#${String(c.id??"").padStart(4,"0")}</div></div><span class="jp-type">${esc(type)}</span><div class="jp-meta"><div class="jp-meta-box"><span class="jp-label">Nivel</span><span class="jp-value">${d.level}</span></div><div class="jp-meta-box"><span class="jp-label">Calidad</span><span class="jp-value">${d.quality.toFixed(2).replace(".",",")}</span></div><div class="jp-meta-box"><span class="jp-label">IV Total</span><span class="jp-value" style="color:#55e6d3">${d.total}<span class="jp-muted">/192</span></span></div><div class="jp-meta-box"><span class="jp-label">Poder estimado</span><span class="jp-value" style="color:#f1c644">${Math.round(d.power)}</span></div></div></div><div class="jp-actions"><button class="jp-btn" data-copy title="Copiar">⧉</button><button class="jp-btn" data-close title="Cerrar">×</button></div></div><div class="jp-rating"><div class="jp-gauge" style="--score:${d.pct}"><span>${Math.round(d.pct)}%</span></div><div><div class="jp-rating-title">${rating}</div><div class="jp-rating-sub">Posee atributos equilibrados para uso general.</div></div></div><div class="jp-section">ESTADÍSTICAS / IV <span class="jp-muted">(${d.pct.toFixed(1)}% · <span class="jp-accent">${qualityLabel} ×${d.quality.toFixed(2)}</span>)</span></div><div class="jp-grid">${stats}</div><div class="jp-section">HABILIDADES</div><div class="jp-moves">${movesHtml}</div><div class="jp-footer"><span>Arrastra la esquina inferior derecha para cambiar el tamaño · Poder en el juego: <b>${d.powerGame||Math.round(d.power)}</b></span><span>PokeIdleLab IV Calculator · v1.0.19</span></div>`;
 el.querySelectorAll("[data-stat]").forEach(i=>i.addEventListener("input",()=>{if(current){current.actuals[i.dataset.stat]=Number(i.value)||0;render(current)}}));
 el.querySelector("[data-close]")?.addEventListener("click",()=>{box.style.display="none"});
 el.querySelector("[data-copy]")?.addEventListener("click",async()=>{const t=d.name+" · Nv "+d.level+" · IV "+d.total+"/192 · Calidad "+d.quality.toFixed(2)+" · Poder "+Math.round(d.power);try{await navigator.clipboard?.writeText(t)}catch{}});
