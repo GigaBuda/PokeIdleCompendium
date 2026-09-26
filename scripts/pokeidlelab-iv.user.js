@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab IV Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.5
+// @version      1.0.6
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -26,6 +26,9 @@
   let lastText = "";
   let dragging = false;
   let lastPokemonTooltip = null;
+  let activeTab = "iv";
+  let farmVip = true;
+  let farmDoubleXp = true;
 
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const num = v => Number(String(v ?? "").replace(",", ".").replace(/[^\d.-]/g, ""));
@@ -192,6 +195,111 @@
   }
 
 
+  const FARM_SPECIAL_TYPES = ["FIRE","WATER","GRASS","ELECTRIC","ICE","PSYCHIC","DRAGON","DARK","FAIRY"];
+  const FARM_TYPE_CHART = {
+    NORMAL:{ROCK:.5,GHOST:0,STEEL:.5},FIRE:{FIRE:.5,WATER:.5,GRASS:2,ICE:2,BUG:2,ROCK:.5,DRAGON:.5,STEEL:2},
+    WATER:{FIRE:2,WATER:.5,GRASS:.5,GROUND:2,ROCK:2,DRAGON:.5},GRASS:{FIRE:.5,WATER:2,GRASS:.5,POISON:.5,GROUND:2,FLYING:.5,BUG:.5,ROCK:2,DRAGON:.5,STEEL:.5},
+    ELECTRIC:{WATER:2,ELECTRIC:.5,GRASS:.5,GROUND:0,FLYING:2,DRAGON:.5},ICE:{FIRE:.5,WATER:.5,GRASS:2,ICE:.5,GROUND:2,FLYING:2,DRAGON:2,STEEL:.5},
+    FIGHTING:{NORMAL:2,ICE:2,POISON:.5,FLYING:.5,PSYCHIC:.5,BUG:.5,ROCK:2,GHOST:0,DARK:2,STEEL:2,FAIRY:.5},
+    POISON:{GRASS:2,POISON:.5,GROUND:.5,ROCK:.5,GHOST:.5,STEEL:0,FAIRY:2},GROUND:{FIRE:2,ELECTRIC:2,GRASS:.5,POISON:2,FLYING:0,BUG:.5,ROCK:2,STEEL:2},
+    FLYING:{ELECTRIC:.5,GRASS:2,FIGHTING:2,BUG:2,ROCK:.5,STEEL:.5},PSYCHIC:{FIGHTING:2,POISON:2,PSYCHIC:.5,DARK:0,STEEL:.5},
+    BUG:{FIRE:.5,GRASS:2,FIGHTING:.5,POISON:.5,FLYING:.5,PSYCHIC:2,GHOST:.5,DARK:2,STEEL:.5,FAIRY:.5},
+    ROCK:{FIRE:2,ICE:2,FIGHTING:.5,GROUND:.5,FLYING:2,BUG:2,STEEL:.5},GHOST:{NORMAL:0,PSYCHIC:2,GHOST:2,DARK:.5},
+    DRAGON:{DRAGON:2,STEEL:.5,FAIRY:0},DARK:{FIGHTING:.5,PSYCHIC:2,GHOST:2,DARK:.5,FAIRY:.5},
+    STEEL:{FIRE:.5,WATER:.5,ELECTRIC:.5,ICE:2,ROCK:2,STEEL:.5,FAIRY:2},FAIRY:{FIRE:.5,FIGHTING:2,POISON:.5,DRAGON:2,DARK:2,STEEL:.5}
+  };
+
+  function farmMultiplier(atkType, def1, def2) {
+    const a = String(atkType || "NORMAL").toUpperCase(), d1 = String(def1 || "NORMAL").toUpperCase(), d2 = def2 ? String(def2).toUpperCase() : "";
+    const raw = (FARM_TYPE_CHART[a]?.[d1] ?? 1) * (d2 ? (FARM_TYPE_CHART[a]?.[d2] ?? 1) : 1);
+    if (raw === 0) return 0; if (raw >= 4) return 5.5; if (raw >= 2) return 2.5; if (raw > 1) return 1.75; if (raw <= .25) return .17; if (raw <= .5) return .33; return raw;
+  }
+
+  function farmGeneration(id) {
+    const n = Number(id) || 0;
+    if ((n >= 866 && n <= 899) || (n >= 890 && n <= 913)) return 2;
+    if (n <= 151) return 1; if (n <= 251) return 2; if (n <= 386) return 3; return 4;
+  }
+
+  function farmNum(obj, keys, fallback = 0) {
+    for (const key of keys) { const v = obj?.[key]; if (v != null && Number.isFinite(Number(v))) return Number(v); }
+    return fallback;
+  }
+
+  function farmMoves(creature, level) {
+    const raw = creature && (creature.moves || creature.attacks || creature.skills || creature.spells);
+    if (!Array.isArray(raw)) return [];
+    return raw.map(m => typeof m === "string" ? ({name:m,type:"NORMAL",power:40,level:1,tm:false}) : ({
+      name:m?.name || m?.moveName || m?.move || m?.id || "Ataque",
+      type:String(m?.type || m?.element || "NORMAL").toUpperCase(),
+      power:farmNum(m,["power","basePower","damage"],0),
+      level:farmNum(m,["learnLevel","learn_level","level","lvl"],1),
+      tm:!!m?.tm
+    })).filter(m => m.power > 0 && !m.tm && m.level <= level);
+  }
+
+  function farmStat(base, growth, level, quality) {
+    return Math.max(1, Math.round((Number(base || 0) + 2 * growth) * (level / 100) * Math.pow(quality, 1)));
+  }
+
+  function getFarmCalibration(targetId, huntLevel) {
+    const seeded = {49:3600/425,163:3600/186,205:3600/538,227:3600/(4100/(9+55/60)),878:((21+1/60)*60/80)-(0.66-0.60),888:11.6694872086,907:8.6580645161,903:13.5888162672};
+    const seededXp = {878:22159.25,907:33414.1440860215,903:32602.6419753086};
+    try {
+      const samples = JSON.parse(localStorage.getItem("pokeIdleLab.huntCalibration.v1") || "[]");
+      const relevant = Array.isArray(samples) ? samples.filter(s => Number(s?.targetId) === Number(targetId) && (!huntLevel || !s?.huntLevel || Number(s.huntLevel) === Number(huntLevel))) : [];
+      if (relevant.length) {
+        const totalKills = relevant.reduce((n,s) => n + Math.max(0,Number(s.kills)||0),0);
+        if (totalKills > 0) {
+          const cycle = relevant.reduce((n,s) => n + (Number(s.elapsedSeconds)||0),0) / totalKills;
+          const xpSamples = relevant.filter(s => Number.isFinite(Number(s.xpGained)) && Number(s.kills) > 0);
+          const xp = xpSamples.length ? xpSamples.reduce((n,s) => n + Number(s.xpGained),0) / xpSamples.reduce((n,s) => n + Number(s.kills),0) : undefined;
+          return {cycleSeconds:cycle,xpPerKill:xp,source:"real"};
+        }
+      }
+    } catch {}
+    const cycle = seeded[targetId] ?? (Number(huntLevel) === 150 ? 3600/295 : undefined);
+    return cycle === undefined ? null : {cycleSeconds:cycle,xpPerKill:seededXp[targetId],source:"seed"};
+  }
+
+  function optimizeFarm(data) {
+    const attacker = data.creature;
+    if (!attacker || !creatures.length) return [];
+    const level = Number(data.level) || 1, quality = Number(data.quality) || 1, growth = (Number(data.total) || 0) / 6;
+    const actual = data.stats || {};
+    const atk = Number(actual.atk) || farmStat(creatureBase(attacker,"atk"),growth,level,quality);
+    const spa = Number(actual.spa) || farmStat(creatureBase(attacker,"spa"),growth,level,quality);
+    const speed = Number(actual.vel) || farmStat(creatureBase(attacker,"vel"),growth,level,quality);
+    const interval = Math.max(.6,1.5-speed/300);
+    const moves = farmMoves(attacker,level);
+    const candidates = moves.length ? moves : [{name:"Tackle",type:"NORMAL",power:40,level:1,tm:false}];
+    const av = attacker?.types, type1 = typeName(attacker).split(/[\\/,]/)[0].trim().toUpperCase();
+    const type2 = Array.isArray(av) ? String(av[1] || "").toUpperCase() : String(attacker?.type2 || "").toUpperCase();
+    const attackerTypes = [type1,type2].filter(Boolean), rows = [];
+    for (const target of creatures) {
+      const huntLevel = farmNum(target,["huntLevel","hunt_level","wildLevel"],0);
+      if (!huntLevel || huntLevel > level || farmGeneration(target?.id) > 2) continue;
+      const tv = target?.types, t1 = typeName(target).split(/[\\/,]/)[0].trim().toUpperCase();
+      const t2 = Array.isArray(tv) ? String(tv[1] || "").toUpperCase() : String(target?.type2 || "").toUpperCase();
+      const wildGrowth = 96/6;
+      const wildHp = farmStat(creatureBase(target,"hp"),wildGrowth,huntLevel,1)*5;
+      const wildDef = farmStat(creatureBase(target,"def"),wildGrowth,huntLevel,1);
+      const wildSpDef = farmStat(creatureBase(target,"spd"),wildGrowth,huntLevel,1);
+      let best = null;
+      for (const move of candidates) {
+        const special = FARM_SPECIAL_TYPES.includes(move.type), offense = special ? spa : atk, defense = Math.max(1,special ? wildSpDef : wildDef);
+        const eff = farmMultiplier(move.type,t1,t2), stab = attackerTypes.includes(move.type) ? 1.5 : 1;
+        const raw = ((2*level/5+2)*move.power*(offense/defense))/50+2, damage = Math.max(1,raw*eff*stab);
+        if (!best || damage > best.damage) best = {move,eff,damage};
+      }
+      if (!best) continue;
+      const finalDamage = Math.max(1,Math.round(best.damage)), hits = Math.max(1,Math.ceil(wildHp/finalDamage)), combat = hits*interval;
+      const calibration = getFarmCalibration(target.id,huntLevel), fallbackCycle = Math.max(8.70,7+combat), baseCycle = calibration?.cycleSeconds ?? fallbackCycle, cycle = Math.max(.6,baseCycle+(combat-.60));
+      const killsPerHour = 3600/cycle, xpBase = farmNum(target,["experience","xp","exp","experienceReward","xpReward"],0), xpMult = (farmVip?1.5:1)*(farmDoubleXp?2:1), xpPerKill = calibration?.xpPerKill ?? (xpBase*xpMult*.9953234328), xpHour = killsPerHour*xpPerKill;
+      rows.push({target,huntLevel,xpHour,xpPerKill,killsPerHour,hits,move:best.move,eff:best.eff,damage:finalDamage,cycle,source:calibration?.source || "modelo"});
+    }
+    return rows.sort((a,b) => b.xpHour-a.xpHour || b.eff-a.eff || a.cycle-b.cycle || a.hits-b.hits).slice(0,6);
+  }
   function spriteCacheKey(name) {
     return norm(name).replace(/\s+/g, "-");
   }
@@ -306,7 +414,14 @@
       .pil-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pil-stat{background:#0b1019;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px}.pil-stat-name{font-weight:900;color:var(--c)}.pil-iv{font-size:17px;font-weight:900;margin:3px 0}.pil-input{width:100%;background:#121a27;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:5px}.pil-base{font-size:9px;color:#8392a7;margin-top:4px}
       .pil-section{font-size:9px;color:#8392a7;text-transform:uppercase;letter-spacing:1px;margin:13px 0 7px}.pil-move{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;border-radius:8px;background:#0b1019;border:1px solid rgba(255,255,255,.06);margin-bottom:5px}.pil-type{font-size:9px;padding:2px 6px;border-radius:8px;background:#283449;color:#fff;margin-right:6px}.pil-muted{color:#8392a7}
     `;
-    style.textContent += "\n      #pokeidlelab-iv-panel{width:540px;top:48px;background:linear-gradient(180deg,#0d141f 0%,#09101a 100%);box-shadow:0 24px 70px rgba(0,0,0,.65),0 0 0 1px rgba(70,150,255,.04)}\n      #pokeidlelab-iv-panel .pil-hero{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;min-height:150px}\n      #pokeidlelab-iv-panel .pil-sprite-wrap{height:150px;border-radius:14px;background:radial-gradient(circle at 50% 55%,rgba(255,65,55,.20),transparent 55%),linear-gradient(180deg,#111a28,#09101a);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}\n      #pokeidlelab-iv-panel .pil-sprite-wrap:after{content:\"\";position:absolute;width:112px;height:20px;bottom:18px;border-radius:50%;background:radial-gradient(ellipse,rgba(255,72,72,.65),rgba(255,72,72,0) 70%);filter:blur(5px)}\n      #pokeidlelab-iv-panel .pil-sprite{position:relative;z-index:2;width:128px;height:128px;object-fit:contain;filter:drop-shadow(0 8px 10px rgba(0,0,0,.55));animation:pil-float 2.1s ease-in-out infinite}\n      #pokeidlelab-iv-panel .pil-name-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}\n      #pokeidlelab-iv-panel .pil-name{font-size:23px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n      #pokeidlelab-iv-panel .pil-id{margin-left:auto;color:#7e8ba0;font-size:12px}\n      #pokeidlelab-iv-panel .pil-type-badge{display:inline-flex;padding:4px 12px;border-radius:999px;background:#ef3f39;color:#fff;font-size:10px;font-weight:900;margin-bottom:9px}\n      #pokeidlelab-iv-panel .pil-stat-head{display:flex;justify-content:space-between;align-items:center}\n      #pokeidlelab-iv-panel .pil-bar{height:6px;border-radius:999px;background:#202a38;margin:6px 0 7px;overflow:hidden}\n      #pokeidlelab-iv-panel .pil-bar>i{display:block;height:100%;width:var(--w);background:var(--c);border-radius:inherit}\n      #pokeidlelab-iv-panel .pil-footer{display:flex;justify-content:space-between;color:#8391a5;font-size:10px;padding:8px 2px 1px}\n      #pokeidlelab-iv-panel .pil-footer b{color:#e6ebf1;font-size:12px}\n      @keyframes pil-float{0%,100%{transform:translateY(2px)}50%{transform:translateY(-7px)}}\n";
+    style.textContent += "\n      #pokeidlelab-iv-panel{width:540px;top:48px;background:linear-gradient(180deg,#0d141f 0%,#09101a 100%);box-shadow:0 24px 70px rgba(0,0,0,.65),0 0 0 1px rgba(70,150,255,.04)}\n      #pokeidlelab-iv-panel .pil-hero{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center;min-height:150px}\n      #pokeidlelab-iv-panel .pil-sprite-wrap{height:150px;border-radius:14px;background:radial-gradient(circle at 50% 55%,rgba(255,65,55,.20),transparent 55%),linear-gradient(180deg,#111a28,#09101a);border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}\n      #pokeidlelab-iv-panel .pil-sprite-wrap:after{content:\"\";position:absolute;width:112px;height:20px;bottom:18px;border-radius:50%;background:radial-gradient(ellipse,rgba(255,72,72,.65),rgba(255,72,72,0) 70%);filter:blur(5px)}\n      #pokeidlelab-iv-panel .pil-sprite{position:relative;z-index:2;width:128px;height:128px;object-fit:contain;filter:drop-shadow(0 8px 10px rgba(0,0,0,.55));animation:pil-float 2.1s ease-in-out infinite}\n      #pokeidlelab-iv-panel .pil-name-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}\n      #pokeidlelab-iv-panel .pil-name{font-size:23px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n      #pokeidlelab-iv-panel .pil-id{margin-left:auto;color:#7e8ba0;font-size:12px}\n      #pokeidlelab-iv-panel .pil-type-badge{display:inline-flex;padding:4px 12px;border-radius:999px;background:#ef3f39;color:#fff;font-size:10px;font-weight:900;margin-bottom:9px}\n      #pokeidlelab-iv-panel .pil-stat-head{display:flex;justify-content:space-between;align-items:center}\n      #pokeidlelab-iv-panel .pil-bar{height:6px;border-radius:999px;background:#202a38;margin:6px 0 7px;overflow:hidden}\n      #pokeidlelab-iv-panel .pil-bar>i{display:block;height:100%;width:var(--w);background:var(--c);border-radius:inherit}\n      #pokeidlelab-iv-panel .pil-footer{display:flex;justify-content:space-between;color:#8391a5;font-size:10px;padding:8px 2px 1px}
+      #pokeidlelab-iv-panel .pil-tabs{display:flex;gap:5px;padding:8px 12px 0;background:#0b111b;border-bottom:1px solid rgba(255,255,255,.07)}
+      #pokeidlelab-iv-panel .pil-tab{flex:1;border:1px solid rgba(255,255,255,.08);background:#111a27;color:#8e9bae;border-radius:9px 9px 0 0;padding:8px 10px;font-weight:800;cursor:pointer}
+      #pokeidlelab-iv-panel .pil-tab.active{background:#182638;color:#fff;border-color:rgba(85,230,211,.35);box-shadow:inset 0 -2px 0 #55e6d3}
+      #pokeidlelab-iv-panel .pil-farm-hero{padding:12px;background:linear-gradient(135deg,#102033,#0b111b);border:1px solid rgba(85,230,211,.16);border-radius:12px;margin-bottom:9px}
+      #pokeidlelab-iv-panel .pil-farm-title{font-size:17px;font-weight:900}.pil-farm-sub{color:#8e9bae;margin-top:3px;font-size:10px}
+      #pokeidlelab-iv-panel .pil-farm-options{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}.pil-farm-opt{border:1px solid rgba(255,255,255,.1);background:#101925;color:#8e9bae;border-radius:999px;padding:5px 8px;font-size:10px;font-weight:800;cursor:pointer}.pil-farm-opt.on{color:#fff;border-color:#55e6d3;background:#12312f}
+      #pokeidlelab-iv-panel .pil-farm-row{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:8px;background:#0b1019;border:1px solid rgba(255,255,255,.06);border-radius:9px;margin-bottom:5px}.pil-farm-rank{font-weight:900;color:#55e6d3;text-align:center}.pil-farm-name{font-weight:900}.pil-farm-meta{font-size:9px;color:#8392a7;margin-top:2px}.pil-farm-xp{text-align:right;font-weight:900;color:#ffc52f}.pil-farm-xp small{display:block;color:#8392a7;font-size:8px;font-weight:600}.pil-farm-tag{font-size:8px;padding:2px 5px;border-radius:6px;background:#233247;color:#cbd7e6;margin-left:5px}\n      #pokeidlelab-iv-panel .pil-footer b{color:#e6ebf1;font-size:12px}\n      @keyframes pil-float{0%,100%{transform:translateY(2px)}50%{transform:translateY(-7px)}}\n";
     document.head.appendChild(style);
 
     const panel = document.createElement("div");
@@ -345,6 +460,17 @@
     const panel = document.getElementById(CFG.panelId);
     if (!content || !panel) return;
 
+    const farmRows = optimizeFarm(data);
+    const farmHtml = farmRows.length ? farmRows.map((r,i) =>
+      '<div class="pil-farm-row">' +
+      '<div class="pil-farm-rank">#' + (i + 1) + '</div>' +
+      '<div><div class="pil-farm-name">' + esc(r.target.name) + '<span class="pil-farm-tag">Hunt ' + r.huntLevel + '</span></div>' +
+      '<div class="pil-farm-meta">' + esc(r.move.name) + ' · ' + r.hits + ' golpe' + (r.hits === 1 ? "" : "s") + ' · ' + r.cycle.toFixed(1) + 's/ciclo · x' + r.eff + (r.source === "real" ? " · calibrado" : "") + '</div></div>' +
+      '<div class="pil-farm-xp">+' + Math.round(r.xpHour).toLocaleString() + '<small>XP/h · ' + Math.round(r.killsPerHour).toLocaleString() + ' kills/h</small></div></div>'
+    ).join("") : '<div class="pil-muted">No hay hunts compatibles con este Pokémon y su nivel.</div>';
+    const farmControls = '<div class="pil-farm-options">' +
+      '<button class="pil-farm-opt ' + (farmVip ? "on" : "") + '" data-farm-toggle="vip">VIP +50% XP</button>' +
+      '<button class="pil-farm-opt ' + (farmDoubleXp ? "on" : "") + '" data-farm-toggle="double">Evento XP ×2</button></div>';
     const statCards = Object.keys(CFG.statLabels).map(k => `
       <div class="pil-stat" style="--c:${CFG.colors[k]}">
         <div class="pil-stat-head"><span class="pil-stat-name">${CFG.statLabels[k]}</span><span class="pil-iv">${data.ivs[k].toFixed(1)}/32</span></div>
@@ -357,6 +483,8 @@
       <div class="pil-move"><div><span class="pil-type">${esc(m.type || "—")}</span><b>${esc(m.name)}</b></div><div><span class="pil-muted">${m.level != null ? "Nv " + m.level : ""}</span> <b>${m.power != null ? m.power : "—"}</b></div></div>`).join("") : '<div class="pil-muted">No se encontraron golpes en creatures.json.</div>';
 
     content.innerHTML = `
+      <div class="pil-tabs"><button class="pil-tab ${activeTab === "iv" ? "active" : ""}" data-pil-tab="iv">📊 IV / Stats</button><button class="pil-tab ${activeTab === "farm" ? "active" : ""}" data-pil-tab="farm">⚔️ Farmear XP</button></div>
+      ${activeTab === "iv" ? `
       <div class="pil-hero">
         <div class="pil-sprite-wrap">
           <img class="pil-sprite" src="${esc(data.spriteAnim || data.spriteSrc || "")}" data-fallback="${esc(data.spriteStill || data.spriteSrc || "")}" alt="${esc(data.name)}" onerror="if(this.dataset.fallback && this.src!==this.dataset.fallback){this.src=this.dataset.fallback}else{this.style.display='none'}">
@@ -380,8 +508,20 @@
       <div class="pil-grid">${statCards}</div>
       <div class="pil-section">Habilidades</div>
       <div>${moves}</div>
-      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.5</span></div>`;
+      <div class="pil-footer"><span>Poder en el juego: <b>${data.powerGame || data.power}</b></span><span>PokeIdleLab IV Calculator&nbsp; v1.0.6</span></div>` : `
+      <div class="pil-farm-hero"><div class="pil-farm-title">⚔️ Mejor sitio para farmear con ${esc(data.name)}</div><div class="pil-farm-sub">Mismo criterio del optimizador de PokeIdleLab: XP/h, golpes completos, debilidad elemental y hunts desbloqueadas.</div>${farmControls}</div>
+      <div class="pil-section">Ranking de presas</div><div>${farmHtml}</div>
+      <div class="pil-footer"><span>Jugador: <b>Nv ${data.level}</b> · IV ${data.total}/192 · Calidad ${data.quality.toFixed(2)}</span><span>PokeIdleLab Farm Optimizer&nbsp; v1.0.6</span></div>`;
 
+    content.querySelectorAll("[data-pil-tab]").forEach(button => button.addEventListener("click", () => {
+      activeTab = button.dataset.pilTab === "farm" ? "farm" : "iv";
+      render(current);
+    }));
+    content.querySelectorAll("[data-farm-toggle]").forEach(button => button.addEventListener("click", () => {
+      if (button.dataset.farmToggle === "vip") farmVip = !farmVip;
+      if (button.dataset.farmToggle === "double") farmDoubleXp = !farmDoubleXp;
+      render(current);
+    }));
     content.querySelectorAll("[data-stat]").forEach(input => input.addEventListener("input", () => {
       const k = input.dataset.stat;
       current.stats[k] = Number(input.value) || 0;
