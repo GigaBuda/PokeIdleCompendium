@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.14
+// @version      1.0.15
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -14,7 +14,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 function base(c,k){const a={hp:["hp","baseHp","baseHP"],atk:["atk","attack","baseAtk","baseAttack"],def:["def","defense","baseDef","baseDefense"],spa:["spa","spatk","spAtk","spAttack","specialAttack","baseSpA","baseSpecialAttack"],spd:["spd","spdef","spDef","spDefense","specialDefense","baseSpD","baseSpecialDefense"],vel:["vel","spe","speed","baseVel","baseSpeed"]};for(const x of a[k]||[]){if(c?.[x]!=null&&Number.isFinite(+c[x]))return+c[x];if(c?.stats?.[x]!=null&&Number.isFinite(+c.stats[x]))return+c.stats[x];if(c?.baseStats?.[x]!=null&&Number.isFinite(+c.baseStats[x]))return+c.baseStats[x]}return 0}
 async function load(){try{const r=await fetch("/game/creatures.json");if(r.ok){const d=await r.json();creatures=Array.isArray(d?.creatures)?d.creatures:[]}}catch{}}
 function parse(text){const raw=String(text||"");const lines=raw.split(/\n+/).map(x=>x.trim()).filter(Boolean);if(!lines.length)return null;
-if(/(?:^|\n)\s*(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(raw)||/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(raw))return null;
+if(/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(raw)||/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(raw))return null;
 const lm=raw.match(/(?:Lv\.?|Nivel|Nível)\s*(\d+)/i),qm=raw.match(/(?:×|x)\s*(\d+(?:[.,]\d+)?)/),im=raw.match(/IV\s*(\d+)\s*\/\s*(\d+)/i),pm=raw.match(/(?:Poder|Power)\s*[:\-]?\s*(\d+)/i);
 const hasPokemonData=!!(lm||im||pm||/(?:Qualidade|Raridade|HP|Vida|ATK|Ataque|DEF|Defesa|SpA|SpD|VEL|Velocidade)\b/i.test(raw));if(!hasPokemonData)return null;
 const nl=lines.find(x=>!/(?:Lv\.?\s*\d+|IV\s*\d+|Qualidade|Raridade|Poder|Power|×|x\s*\d)/i.test(x))||lines[0];
@@ -100,6 +100,6 @@ el.querySelector("[data-close]")?.addEventListener("click",()=>{box.style.displa
 el.querySelector("[data-copy]")?.addEventListener("click",async()=>{const t=d.name+" · Nv "+d.level+" · IV "+d.total+"/192 · Calidad "+d.quality.toFixed(2)+" · Poder "+Math.round(d.power);try{await navigator.clipboard?.writeText(t)}catch{}});
 box.style.display="block";
 }
-function scan(){const tips=[...document.querySelectorAll(".inv-tip")].filter(t=>{const s=getComputedStyle(t),r=t.getBoundingClientRect();return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0});const tip=tips[0];if(!tip)return;const text=tip.innerText||"",p=parse(text);if(!p){document.getElementById(CFG.panelId)?.style.setProperty("display","none");return}p.spriteSrc=tip.querySelector("img")?.currentSrc||tip.querySelector("img")?.src||"";if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p)}}
+function scan(){const tips=[...document.querySelectorAll(".inv-tip")].filter(t=>{const s=getComputedStyle(t),r=t.getBoundingClientRect();return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0});const tip=tips.find(t=>{const tx=t.innerText||"";return !/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(tx)&&!/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(tx)})||tips[0];if(!tip){return}const text=tip.innerText||"";if(/\b(?:LOOT|ITEM|RECURSO|POK[EÉ]\s*BALL|POK[EÉ]BALL)\b/i.test(text)||/(?:\$\s*\d[\d.,]*|\d[\d.,]*\s*dollars?)\b/i.test(text)){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}const p=parse(text);if(!p){document.getElementById(CFG.panelId)?.style.setProperty("display","none");lastPokemonTooltip=null;lastText="";current=null;return}p.spriteSrc=tip.querySelector("img")?.currentSrc||tip.querySelector("img")?.src||"";if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p)}}
 new MutationObserver(scan).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});document.addEventListener("mouseover",e=>{if(e.target.closest?.(".inv-tip"))setTimeout(scan,0)},true);setInterval(scan,250);panel();load();
 })();
