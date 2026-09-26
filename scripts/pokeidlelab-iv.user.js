@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         PokeIdleLab Calculator
 // @namespace    poke-idle-lab
-// @version      1.0.11
+// @version      1.0.12
 // @description  Calculadora de IV para Poke Idle World, integrada con PokeGrid
 // @match        https://poke.idleworld.online/*
 // @grant        none
@@ -15,112 +15,8 @@ function base(c,k){const a={hp:["hp","baseHp","baseHP"],atk:["atk","attack","bas
 async function load(){try{const r=await fetch("/game/creatures.json");if(r.ok){const d=await r.json();creatures=Array.isArray(d?.creatures)?d.creatures:[]}}catch{}}
 function parse(text){const lines=String(text||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);if(!lines.length)return null;const lm=text.match(/(?:Lv\.?|Nivel|Nível)\s*(\d+)/i),qm=text.match(/(?:×|x)\s*(\d+(?:[.,]\d+)?)/),im=text.match(/IV\s*(\d+)\s*\/\s*(\d+)/i),pm=text.match(/(?:Poder|Power)\s*[:\-]?\s*(\d+)/i);const nl=lines.find(x=>!/(?:Lv\.?\s*\d+|IV\s*\d+|Qualidade|Raridade|Poder|Power|×|x\s*\d)/i.test(x))||lines[0];const name=nl.replace(/^(?:LOOT|ITEM|POK[EÉ] BALL|POK[EÉ]BALL|RECURSO)\s*/i,"").replace(/\s+(?:LOOT|ITEM|POK[EÉ] BALL|POK[EÉ]BALL|RECURSO)\s*$/i,"").replace(/\s+x\s*\d+\s*$/i,"").trim();if(!creatures.some(c=>norm(c.name)===norm(name)))return null;const actuals={};for(const k of Object.keys(CFG.statLabels)){const lab={hp:"(?:HP|Vida)",atk:"(?:ATK|Atk|Ataque)",def:"(?:DEF|Def|Defesa)",spa:"(?:SpA|SPA|Sp\\.\\s*A|Ataque\\s*especial)",spd:"(?:SpD|SPD|Sp\\.\\s*D|Defesa\\s*especial)",vel:"(?:VEL|Vel|Speed|Velocidade)"}[k],m=text.match(new RegExp(lab+"\\s*[:=]?\\s*(\\d+)","i"));if(m)actuals[k]=+m[1]}return{name,level:lm?+lm[1]:1,quality:qm?+qm[1].replace(",","."):1,ivObserved:im?+im[1]:null,powerGame:pm?+pm[1]:0,actuals}}
 function calc(p){const c=creatures.find(x=>norm(x.name)===norm(p.name)),stats=p.actuals||{},ivs={};let sum=0;for(const k of Object.keys(CFG.statLabels)){const f=(p.level/100)*Math.pow(p.quality,CFG.exponents[k]);ivs[k]=base(c,k)&&stats[k]?Math.max(0,Math.min(32,((stats[k]/f)-base(c,k))/2)):0;sum+=ivs[k]}const total=p.ivObserved>0?p.ivObserved:Math.ceil(sum),pct=Math.min(100,total/192*100);return{...p,creature:c,bases:Object.fromEntries(Object.keys(CFG.statLabels).map(k=>[k,base(c,k)])),stats,ivs,total,pct,power:Object.values(stats).reduce((a,b)=>a+(+b||0),0)*p.quality}}
-function panel(){
-if(document.getElementById(CFG.panelId))return;
-const s=document.createElement("style");
-s.textContent=`
-#\${CFG.panelId}{position:fixed;z-index:2147483647;top:0;right:10px;width:555px;max-height:calc(100vh - 2px);overflow:auto;background:#0d1219;color:#eef3f8;border:1px solid #ff3b20;border-top-width:2px;border-radius:10px;box-shadow:0 22px 65px rgba(0,0,0,.72);font:12px Arial,sans-serif;display:none}
-#\${CFG.panelId} *{box-sizing:border-box}
-#\${CFG.panelId} .pil-body{padding:0 9px 8px}
-#\${CFG.panelId} .pil-hero{display:grid;grid-template-columns:64px 1fr auto;gap:10px;align-items:center;padding:7px 5px 8px;border-bottom:1px solid #242c35}
-#\${CFG.panelId} .pil-sprite{width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 4px 5px rgba(0,0,0,.55))}
-#\${CFG.panelId} .pil-name-row{display:flex;align-items:baseline;gap:8px;margin-bottom:3px}
-#\${CFG.panelId} .pil-name{font-size:17px;font-weight:900;white-space:nowrap}
-#\${CFG.panelId} .pil-id{font-size:10px;color:#7d8792}
-#\${CFG.panelId} .pil-type{display:inline-block;background:#f57d24;color:#171b20;border-radius:999px;padding:4px 11px;font-size:10px;font-weight:900}
-#\${CFG.panelId} .pil-actions{display:flex;gap:6px}
-#\${CFG.panelId} .pil-action{width:30px;height:30px;border-radius:8px;border:1px solid #33404d;background:#111922;color:#dce3ea;cursor:pointer}
-#\${CFG.panelId} .pil-top{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}
-#\${CFG.panelId} .pil-box,#\${CFG.panelId} .pil-rating,#\${CFG.panelId} .pil-stat,#\${CFG.panelId} .pil-move{background:#0f151d;border:1px solid #252f3a;border-radius:9px}
-#\${CFG.panelId} .pil-box{padding:8px 9px}
-#\${CFG.panelId} .pil-label{font-size:8px;text-transform:uppercase;color:#778391;letter-spacing:.5px}
-#\${CFG.panelId} .pil-value{font-size:16px;font-weight:900;margin-top:3px}
-#\${CFG.panelId} .pil-rating{display:flex;align-items:center;gap:12px;padding:9px 11px;margin:9px 0}
-#\${CFG.panelId} .pil-ring{width:55px;height:55px;flex:0 0 55px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#55a9ff calc(var(--p)*1%),#26303b 0);position:relative}
-#\${CFG.panelId} .pil-ring:after{content:"";position:absolute;width:43px;height:43px;border-radius:50%;background:#0f151d}
-#\${CFG.panelId} .pil-ring span{position:relative;z-index:1;font-size:12px;font-weight:900}
-#\${CFG.panelId} .pil-rating-title{font-size:12px;font-weight:900}
-#\${CFG.panelId} .pil-rating-sub{font-size:10px;color:#7e8996;margin-top:3px}
-#\${CFG.panelId} .pil-section{font-size:9px;color:#7b8794;text-transform:uppercase;letter-spacing:.7px;margin:11px 1px 6px}
-#\${CFG.panelId} .pil-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-#\${CFG.panelId} .pil-stat{padding:8px}
-#\${CFG.panelId} .pil-stat-head{display:flex;justify-content:space-between;align-items:center}
-#\${CFG.panelId} .pil-stat-name{font-weight:900;color:var(--c)}
-#\${CFG.panelId} .pil-iv{font-weight:900;color:var(--c)}
-#\${CFG.panelId} .pil-bar{height:5px;border-radius:99px;background:#222b35;margin:6px 0 7px;overflow:hidden}
-#\${CFG.panelId} .pil-bar i{display:block;height:100%;width:var(--w);background:var(--c);border-radius:99px}
-#\${CFG.panelId} .pil-input{width:100%;background:#111922;color:#eaf0f5;border:1px solid #34404d;border-radius:6px;padding:5px;font-size:11px}
-#\${CFG.panelId} .pil-base{font-size:9px;color:#7c8794;margin-top:4px}
-#\${CFG.panelId} .pil-move{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;margin-bottom:5px}
-#\${CFG.panelId} .pil-move-main{display:flex;align-items:center;gap:7px;min-width:0}
-#\${CFG.panelId} .pil-move-type{font-size:9px;font-weight:900;padding:3px 8px;border-radius:999px;background:#3d3f30;color:#f4e7a7}
-#\${CFG.panelId} .pil-move-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#\${CFG.panelId} .pil-move-meta{font-size:9px;color:#7e8996}
-#\${CFG.panelId} .pil-power{color:#ff9b2f;font-weight:900}
-#\${CFG.panelId} .pil-footer{display:flex;justify-content:space-between;color:#788492;font-size:10px;padding:7px 1px 0}
-@media(max-width:700px){#\${CFG.panelId}{width:calc(100vw - 8px);right:4px}.pil-grid{grid-template-columns:repeat(2,1fr)}.pil-top{grid-template-columns:repeat(2,1fr)}}
-`;
-document.head.appendChild(s);
-const p=document.createElement("div");
-p.id=CFG.panelId;
-p.innerHTML='<div class="pil-body" id="pil-content"></div>';
-document.body.appendChild(p);
-}
-
-function render(p){
-const d=calc(p),el=document.getElementById("pil-content"),box=document.getElementById(CFG.panelId);
-if(!el||!box)return;
-const type=(d.creature?.type||d.creature?.element||d.creature?.primaryType||"POKÉMON").toString().toUpperCase();
-const sprite=d.spriteSrc||"";
-const cards=Object.keys(CFG.statLabels).map(k=>`<div class="pil-stat" style="--c:${CFG.colors[k]}"><div class="pil-stat-head"><span class="pil-stat-name">${CFG.statLabels[k]}</span><span class="pil-iv">${d.ivs[k].toFixed(1)}/32</span></div><div class="pil-bar"><i style="--w:${Math.max(0,Math.min(100,d.ivs[k]/32*100))}%"></i></div><input class="pil-input" data-stat="${k}" value="${d.stats[k]??""}" type="number"><div class="pil-base">base ${d.bases[k]||"?"}</div></div>`).join("");
-const hero=`<div class="pil-hero"><img class="pil-sprite" src="${esc(sprite)}" alt="${esc(d.name)}"><div><div class="pil-name-row"><div class="pil-name">${esc(d.name)}</div><div class="pil-id">${d.creature?.id?"#"+String(d.creature.id).padStart(4,"0"):""}</div></div><span class="pil-type">${esc(type)}</span></div><div class="pil-actions"><button class="pil-action" data-pil-copy title="Copiar">⧉</button><button class="pil-action" data-pil-close title="Cerrar">×</button></div></div>`;
-const top=`<div class="pil-top"><div class="pil-box"><div class="pil-label">Nivel</div><div class="pil-value">${d.level}</div></div><div class="pil-box"><div class="pil-label">Calidad</div><div class="pil-value">${d.quality.toFixed(2)}</div></div><div class="pil-box"><div class="pil-label">IV Total</div><div class="pil-value">${d.total}/192</div></div><div class="pil-box"><div class="pil-label">Poder</div><div class="pil-value">${Math.round(d.power)}</div></div></div>`;
-const rating=`<div class="pil-rating"><div class="pil-ring" style="--p:${d.pct}"><span>${Math.round(d.pct)}%</span></div><div><div class="pil-rating-title">Calidad IV estimada</div><div class="pil-rating-sub">${d.total}/192 · Poder ${Math.round(d.power)}</div></div></div>`;
-el.innerHTML=hero+top+rating+`<div class="pil-section">Atributos e IV por stat</div><div class="pil-grid">${cards}</div><div class="pil-footer"><span>Poder en el juego: <b>${d.powerGame||Math.round(d.power)}</b></span><span>PokeIdleLab IV Calculator · v1.0.11</span></div>`;
-el.querySelectorAll("[data-stat]").forEach(i=>i.addEventListener("input",()=>{if(current){current.actuals[i.dataset.stat]=Number(i.value)||0;render(current)}}));
-el.querySelector("[data-pil-close]")?.addEventListener("click",()=>{box.style.display="none"});
-el.querySelector("[data-pil-copy]")?.addEventListener("click",async()=>{const t=d.name+" · Nv "+d.level+" · IV "+d.total+"/192 · Calidad "+d.quality.toFixed(2)+" · Poder "+Math.round(d.power);try{await navigator.clipboard?.writeText(t)}catch{}});
-box.style.display="block";
-}
-
-function cleanTooltipText(tip){
-const clone=tip.cloneNode(true);
-clone.querySelectorAll('button,[role="button"],input,select,textarea,a').forEach(x=>x.remove());
-return (clone.innerText||"").trim();
-}
-
-function findVisibleTooltip(){
-const selectors=['[role="tooltip"]','[class*="tooltip"]','[class*="popover"]','.inv-tip'];
-const candidates=[];
-for(const sel of selectors){try{document.querySelectorAll(sel).forEach(x=>candidates.push(x))}catch{}}
-const visible=candidates.filter(t=>{
-const s=getComputedStyle(t),r=t.getBoundingClientRect(),txt=cleanTooltipText(t);
-return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0&&txt.length>0;
-});
-visible.sort((a,b)=>b.getBoundingClientRect().width*b.getBoundingClientRect().height-a.getBoundingClientRect().width*a.getBoundingClientRect().height);
-return visible.find(t=>{const tx=norm(cleanTooltipText(t));return creatures.some(c=>tx.includes(norm(c.name)))})||null;
-}
-
-function scan(){
-const tip=findVisibleTooltip();
-if(!tip)return;
-const text=cleanTooltipText(tip),p=parse(text);
-if(!p)return;
-p.spriteSrc=tip.querySelector("img")?.currentSrc||tip.querySelector("img")?.src||"";
-if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p)}
-}
-
-function scanSoon(){
-scan();
-setTimeout(scan,40);
-setTimeout(scan,120);
-setTimeout(scan,250);
-}
-
-new MutationObserver(scanSoon).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});
-document.addEventListener("mouseover",e=>{if(e.target?.closest?.('button,[role="button"]'))return;scanSoon()},true);
-document.addEventListener("pointerover",e=>{if(e.target?.closest?.('button,[role="button"]'))return;scanSoon()},true);
-setInterval(scan,250);
-panel();
-load();
+function panel(){if(document.getElementById(CFG.panelId))return;const s=document.createElement("style");s.textContent=`#${CFG.panelId}{position:fixed;z-index:2147483647;top:48px;right:18px;width:540px;max-height:calc(100vh - 70px);overflow:auto;background:#0d141f;color:#f0f4f9;border:1px solid #26354a;border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.65);font:12px Arial;display:none}#${CFG.panelId} *{box-sizing:border-box}.pil-head{padding:12px 14px;border-bottom:1px solid #26354a;display:flex;justify-content:space-between;cursor:move}.pil-title{font-size:16px;font-weight:800}.pil-close{background:#151d2a;color:#fff;border:1px solid #334157;border-radius:8px;width:28px;height:28px}.pil-body{padding:12px}.pil-top,.pil-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.pil-box,.pil-stat,.pil-rating{background:#0b1019;border:1px solid #202d40;border-radius:10px;padding:9px}.pil-label,.pil-base,.pil-muted{color:#8392a7}.pil-value{font-size:17px;font-weight:900;margin-top:3px}.pil-stat-name{font-weight:900;color:var(--c)}.pil-iv{font-size:17px;font-weight:900}.pil-input{width:100%;margin-top:5px;background:#121a27;color:#fff;border:1px solid #334157;border-radius:6px;padding:5px}.pil-rating{display:flex;gap:12px;align-items:center;margin:10px 0}.pil-section{font-size:9px;color:#8392a7;text-transform:uppercase;letter-spacing:1px;margin:13px 0 7px}.pil-tabs{display:flex;gap:5px;margin-bottom:8px}.pil-tab{flex:1;padding:8px;background:#111a27;color:#8e9bae;border:1px solid #334157;border-radius:8px}.pil-tab.active{color:#fff;border-color:#55e6d3}.pil-farm-row{display:flex;justify-content:space-between;padding:9px;background:#0b1019;border:1px solid #202d40;border-radius:9px;margin-bottom:5px}.pil-sprite{width:128px;height:128px;object-fit:contain}.pil-hero{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center}`;document.head.appendChild(s);const p=document.createElement("div");p.id=CFG.panelId;p.innerHTML='<div class="pil-head" id="pil-drag"><div class="pil-title">🧮 PokeIdleLab Calculator</div><button class="pil-close">×</button></div><div class="pil-body" id="pil-content"></div>';document.body.appendChild(p);p.querySelector(".pil-close").onclick=()=>p.style.display="none";const h=p.querySelector("#pil-drag");h.onmousedown=e=>{if(e.target.closest("button"))return;dragging=true;const r=p.getBoundingClientRect();p.dataset.dx=e.clientX-r.left;p.dataset.dy=e.clientY-r.top;p.style.right="auto"};document.addEventListener("mousemove",e=>{if(dragging){p.style.left=Math.max(0,e.clientX-p.dataset.dx)+"px";p.style.top=Math.max(0,e.clientY-p.dataset.dy)+"px"}});document.addEventListener("mouseup",()=>dragging=false)}
+function render(p){const d=calc(p),el=document.getElementById("pil-content"),box=document.getElementById(CFG.panelId);if(!el||!box)return;const cards=Object.keys(CFG.statLabels).map(k=>`<div class="pil-stat" style="--c:${CFG.colors[k]}"><div class="pil-stat-name">${CFG.statLabels[k]} <span class="pil-muted">${d.ivs[k].toFixed(1)}/32</span></div><input class="pil-input" data-stat="${k}" value="${d.stats[k]??""}" type="number"><div class="pil-base">base ${d.bases[k]||"?"}</div></div>`).join("");el.innerHTML=`<div class="pil-tabs"><button class="pil-tab ${activeTab==="iv"?"active":""}" data-tab="iv">📊 IV / Stats</button><button class="pil-tab ${activeTab==="farm"?"active":""}" data-tab="farm">⚔️ Farmear XP</button></div>${activeTab==="iv"?`<div class="pil-hero"><div><img class="pil-sprite" src="${esc(d.spriteSrc||"")}"></div><div><h2>${esc(d.name)}</h2><div class="pil-top"><div class="pil-box"><div class="pil-label">Nivel</div><div class="pil-value">${d.level}</div></div><div class="pil-box"><div class="pil-label">Calidad</div><div class="pil-value">${d.quality.toFixed(2)}</div></div><div class="pil-box"><div class="pil-label">IV Total</div><div class="pil-value">${d.total}/192</div></div></div><div class="pil-box" style="margin-top:7px">Poder: <b>${Math.round(d.power)}</b></div></div></div><div class="pil-rating"><b>${Math.round(d.pct)}%</b><span>Calidad IV estimada</span></div><div class="pil-section">Atributos e IV</div><div class="pil-grid">${cards}</div>`:`<div class="pil-section">Optimización de farmeo</div><div class="pil-farm-row"><b>${esc(d.name)}</b><span>XP optimizer activo</span></div>`}`;el.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{activeTab=b.dataset.tab;render(current)});el.querySelectorAll("[data-stat]").forEach(i=>i.oninput=()=>{if(current)current.actuals[i.dataset.stat]=+i.value;render(current)});box.style.display="block"}
+function scan(){const tips=[...document.querySelectorAll(".inv-tip")].filter(t=>{const s=getComputedStyle(t),r=t.getBoundingClientRect();return s.display!=="none"&&s.visibility!=="hidden"&&+s.opacity>0&&r.width>0&&r.height>0});const tip=tips[0];if(!tip)return;const text=tip.innerText||"",p=parse(text);if(!p){document.getElementById(CFG.panelId)?.style.setProperty("display","none");return}p.spriteSrc=tip.querySelector("img")?.currentSrc||tip.querySelector("img")?.src||"";if(tip!==lastPokemonTooltip||text!==lastText){lastPokemonTooltip=tip;lastText=text;current=p;render(p)}}
+new MutationObserver(scan).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true});document.addEventListener("mouseover",e=>{if(e.target.closest?.(".inv-tip"))setTimeout(scan,0)},true);setInterval(scan,250);panel();load();
 })();
